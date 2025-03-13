@@ -1,13 +1,34 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from "react";
+import { Helmet } from "react-helmet";
+import Navbar from "@/components/landing/navbar";
+import Hero from "@/components/landing/hero";
+import Features from "@/components/landing/features";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <>
+      <Helmet>
+        <title>IntelliOrder - E-commerce Operations Management</title>
+        <meta name="description" content="A role-based e-commerce operations platform for seamless inventory management, fraud detection, and order processing." />
+      </Helmet>
+      
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <Hero />
+          <Features />
+        </main>
+        
+        <footer className="py-8 px-4 border-t">
+          <div className="max-w-7xl mx-auto text-center">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} IntelliOrder. All rights reserved.
+            </p>
+          </div>
+        </footer>
       </div>
-    </div>
+    </>
   );
 };
 
