@@ -14,6 +14,8 @@ import AdminDashboard from "./pages/dashboard/admin";
 import WarehouseDashboard from "./pages/dashboard/warehouse";
 import SupportDashboard from "./pages/dashboard/support";
 import WarehouseOrdersPage from "./pages/warehouse/orders";
+import WarehouseShipmentPage from "./pages/warehouse/shipment";
+import WarehouseRestockPage from "./pages/warehouse/restock";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,8 @@ const App = () => (
           
           {/* Warehouse routes */}
           <Route path="/warehouse/orders" element={<WarehouseOrdersPage />} />
+          <Route path="/warehouse/shipment" element={<WarehouseShipmentPage />} />
+          <Route path="/warehouse/restock" element={<WarehouseRestockPage />} />
           
           {/* Redirect /dashboard to the appropriate dashboard based on role */}
           <Route path="/dashboard" element={<Navigate to="/dashboard/admin" replace />} />
