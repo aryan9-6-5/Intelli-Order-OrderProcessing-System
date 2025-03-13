@@ -8,19 +8,28 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardRole } from "@/types";
 
 interface AuthFormProps {
   mode: "login" | "register";
   className?: string;
 }
 
+// Demo credentials for testing
+const DEMO_USERS = {
+  "admin@intelliorder.com": { password: "admin123", role: "admin" as DashboardRole },
+  "warehouse@intelliorder.com": { password: "warehouse123", role: "warehouse" as DashboardRole },
+  "support@intelliorder.com": { password: "support123", role: "support" as DashboardRole },
+};
+
 const AuthForm = ({ mode, className }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<string>("admin"); // Only used in register mode
+  const [role, setRole] = useState<DashboardRole>("admin"); // Only used in register mode
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -28,19 +37,28 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginError("");
     
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       
       if (mode === "login") {
-        toast({
-          title: "Logged in successfully",
-          description: `Redirecting to ${role} dashboard...`,
-        });
+        // Check if the provided credentials match our demo users
+        const demoUser = DEMO_USERS[email as keyof typeof DEMO_USERS];
         
-        // In a real app, this would be determined by the backend
-        navigate(`/dashboard/${role}`);
+        if (demoUser && demoUser.password === password) {
+          const userRole = demoUser.role;
+          
+          toast({
+            title: "Logged in successfully",
+            description: `Redirecting to ${userRole} dashboard...`,
+          });
+          
+          navigate(`/dashboard/${userRole}`);
+        } else {
+          setLoginError("Invalid email or password");
+        }
       } else {
         toast({
           title: "Account created successfully",
@@ -119,6 +137,10 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
             </button>
           </div>
         </div>
+        
+        {loginError && (
+          <div className="text-sm font-medium text-destructive">{loginError}</div>
+        )}
         
         {mode === "register" && (
           <div className="space-y-2">
