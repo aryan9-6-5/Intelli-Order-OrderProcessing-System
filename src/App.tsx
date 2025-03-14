@@ -21,6 +21,8 @@ import WarehouseRestockPage from "./pages/warehouse/restock";
 import AdminOrdersPage from "./pages/admin/orders";
 import AdminInventoryPage from "./pages/admin/inventory";
 import AdminReportsPage from "./pages/admin/reports";
+import AdminFraudPage from "./pages/admin/fraud";
+import AdminStaffPage from "./pages/admin/staff";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,8 @@ const App = () => (
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/inventory" element={<AdminInventoryPage />} />
           <Route path="/admin/reports" element={<AdminReportsPage />} />
+          <Route path="/admin/fraud" element={<AdminFraudPage />} />
+          <Route path="/admin/staff" element={<AdminStaffPage />} />
           
           {/* Warehouse routes */}
           <Route path="/warehouse/orders" element={<WarehouseOrdersPage />} />

@@ -15,7 +15,8 @@ import {
   Truck, 
   User, 
   Users, 
-  X
+  X,
+  ShieldAlert
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           { icon: BarChart3, label: "Dashboard", href: "/dashboard/admin" },
           { icon: ShoppingCart, label: "Orders", href: "/admin/orders" },
           { icon: Box, label: "Inventory", href: "/admin/inventory" },
-          { icon: Shield, label: "Fraud Detection", href: "/admin/fraud" },
+          { icon: ShieldAlert, label: "Fraud Detection", href: "/admin/fraud" },
           { icon: Users, label: "Staff Management", href: "/admin/staff" },
           { icon: BarChart3, label: "Reports", href: "/admin/reports" },
           { icon: Settings, label: "Settings", href: "/admin/settings" },
@@ -200,11 +201,16 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           </Button>
           
           <div className="ml-auto flex items-center gap-3">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => navigate(`/dashboard/${role}`)}>
               <User className="h-5 w-5" />
               <span className="sr-only">Profile</span>
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => {
+              toast({
+                title: "Settings",
+                description: "Settings page is under development.",
+              });
+            }}>
               <Settings className="h-5 w-5" />
               <span className="sr-only">Settings</span>
             </Button>
