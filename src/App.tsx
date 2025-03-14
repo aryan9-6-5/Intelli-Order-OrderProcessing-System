@@ -23,6 +23,13 @@ import AdminInventoryPage from "./pages/admin/inventory";
 import AdminReportsPage from "./pages/admin/reports";
 import AdminFraudPage from "./pages/admin/fraud";
 import AdminStaffPage from "./pages/admin/staff";
+import AdminSettingsPage from "./pages/admin/settings";
+
+// Support Pages
+import SupportOrdersPage from "./pages/support/orders";
+import SupportRefundsPage from "./pages/support/refunds";
+import SupportFraudPage from "./pages/support/fraud";
+import SupportMessagesPage from "./pages/support/messages";
 
 const queryClient = new QueryClient();
 
@@ -49,11 +56,18 @@ const App = () => (
           <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/fraud" element={<AdminFraudPage />} />
           <Route path="/admin/staff" element={<AdminStaffPage />} />
+          <Route path="/admin/settings" element={<AdminSettingsPage />} />
           
           {/* Warehouse routes */}
           <Route path="/warehouse/orders" element={<WarehouseOrdersPage />} />
           <Route path="/warehouse/shipment" element={<WarehouseShipmentPage />} />
           <Route path="/warehouse/restock" element={<WarehouseRestockPage />} />
+          
+          {/* Support routes */}
+          <Route path="/support/orders" element={<SupportOrdersPage />} />
+          <Route path="/support/refunds" element={<SupportRefundsPage />} />
+          <Route path="/support/fraud" element={<SupportFraudPage />} />
+          <Route path="/support/messages" element={<SupportMessagesPage />} />
           
           {/* Redirect /dashboard to the appropriate dashboard based on role */}
           <Route path="/dashboard" element={<Navigate to="/dashboard/admin" replace />} />
