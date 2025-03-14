@@ -17,6 +17,11 @@ import WarehouseOrdersPage from "./pages/warehouse/orders";
 import WarehouseShipmentPage from "./pages/warehouse/shipment";
 import WarehouseRestockPage from "./pages/warehouse/restock";
 
+// Admin Pages
+import AdminOrdersPage from "./pages/admin/orders";
+import AdminInventoryPage from "./pages/admin/inventory";
+import AdminReportsPage from "./pages/admin/reports";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -35,6 +40,11 @@ const App = () => (
           <Route path="/dashboard/admin" element={<AdminDashboard />} />
           <Route path="/dashboard/warehouse" element={<WarehouseDashboard />} />
           <Route path="/dashboard/support" element={<SupportDashboard />} />
+          
+          {/* Admin routes */}
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/inventory" element={<AdminInventoryPage />} />
+          <Route path="/admin/reports" element={<AdminReportsPage />} />
           
           {/* Warehouse routes */}
           <Route path="/warehouse/orders" element={<WarehouseOrdersPage />} />
