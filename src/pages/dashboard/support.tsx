@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/layout/dashboard-layout";
 import WidgetGrid from "@/components/dashboard/widget-grid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link } from "react-router-dom";
 
 const SupportDashboard = () => {
   return (
@@ -32,7 +33,9 @@ const SupportDashboard = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search by order ID or customer email" className="pl-9" />
               </div>
-              <Button>Search</Button>
+              <Button asChild>
+                <Link to="/support/orders">Search</Link>
+              </Button>
             </div>
             
             <div className="bg-muted/50 rounded-lg p-10 flex flex-col items-center justify-center">
@@ -50,8 +53,10 @@ const SupportDashboard = () => {
             <div className="glass-card rounded-xl p-6 animate-fade-in opacity-0 animation-delay-400">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Pending Refunds</h2>
-                <Button size="sm" variant="outline">
-                  <CreditCard className="h-4 w-4 mr-2" /> Process All
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/support/refunds">
+                    <CreditCard className="h-4 w-4 mr-2" /> Process All
+                  </Link>
                 </Button>
               </div>
               <div className="space-y-4">
@@ -68,7 +73,9 @@ const SupportDashboard = () => {
                         </div>
                       </div>
                     </div>
-                    <Button size="sm">Approve</Button>
+                    <Button size="sm" asChild>
+                      <Link to={`/support/refunds?id=${i + 1}234`}>Approve</Link>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -77,8 +84,10 @@ const SupportDashboard = () => {
             <div className="glass-card rounded-xl p-6 animate-fade-in opacity-0 animation-delay-500">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Recent Messages</h2>
-                <Button size="sm" variant="outline">
-                  <MessageSquare className="h-4 w-4 mr-2" /> View All
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/support/messages">
+                    <MessageSquare className="h-4 w-4 mr-2" /> View All
+                  </Link>
                 </Button>
               </div>
               <div className="space-y-4">
