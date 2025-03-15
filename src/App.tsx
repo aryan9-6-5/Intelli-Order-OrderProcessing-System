@@ -29,7 +29,6 @@ import AdminSettingsPage from "./pages/admin/settings";
 import SupportOrdersPage from "./pages/support/orders";
 import SupportRefundsPage from "./pages/support/refunds";
 import SupportFraudPage from "./pages/support/fraud";
-import SupportMessagesPage from "./pages/support/messages";
 
 const queryClient = new QueryClient();
 
@@ -67,7 +66,6 @@ const App = () => (
           <Route path="/support/orders" element={<SupportOrdersPage />} />
           <Route path="/support/refunds" element={<SupportRefundsPage />} />
           <Route path="/support/fraud" element={<SupportFraudPage />} />
-          <Route path="/support/messages" element={<SupportMessagesPage />} />
           
           {/* Redirect /dashboard to the appropriate dashboard based on role */}
           <Route path="/dashboard" element={<Navigate to="/dashboard/admin" replace />} />
