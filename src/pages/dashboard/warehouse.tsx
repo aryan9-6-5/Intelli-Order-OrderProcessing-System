@@ -2,13 +2,45 @@
 import React from "react";
 import { Helmet } from "react-helmet";
 import { Truck, PackageOpen, Box, BarChart, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import WidgetGrid from "@/components/dashboard/widget-grid";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const WarehouseDashboard = () => {
+  const navigate = useNavigate();
+
+  // Function to handle navigation to different warehouse sections
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
+  // Function to handle action buttons with toast notifications
+  const handleAction = (action: string, id: number) => {
+    switch (action) {
+      case 'ship':
+        toast.success(`Order #98${id}54 marked for shipping`, {
+          description: "Order has been added to the shipping queue."
+        });
+        break;
+      case 'process':
+        toast.success(`Order #98${id}54 is being processed`, {
+          description: "Order has been moved to processing."
+        });
+        break;
+      case 'restock':
+        toast.success(`Restock request submitted`, {
+          description: "Restock request has been sent to the supplier."
+        });
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -33,7 +65,11 @@ const WarehouseDashboard = () => {
                 <Badge variant="outline" className="bg-accent/10 text-accent">
                   24 Orders Today
                 </Badge>
-                <Button size="sm">
+                <Button size="sm" onClick={() => {
+                  toast.success("Processing all orders", {
+                    description: "All pending orders have been queued for processing."
+                  });
+                }}>
                   Process All
                 </Button>
               </div>
@@ -69,10 +105,17 @@ const WarehouseDashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleAction('ship', i)}
+                    >
                       <Truck className="h-4 w-4 mr-2" /> Ship
                     </Button>
-                    <Button size="sm">
+                    <Button 
+                      size="sm"
+                      onClick={() => handleAction('process', i)}
+                    >
                       <PackageOpen className="h-4 w-4 mr-2" /> Process
                     </Button>
                   </div>
@@ -106,7 +149,11 @@ const WarehouseDashboard = () => {
                       </div>
                     </div>
                     <div className="ml-4">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleAction('restock', i)}
+                      >
                         <Box className="h-4 w-4 mr-2" /> Restock
                       </Button>
                     </div>
@@ -155,7 +202,11 @@ const WarehouseDashboard = () => {
           <div className="glass-card rounded-xl p-6 animate-fade-in opacity-0 animation-delay-600">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Restock Requests</h2>
-              <Button size="sm" variant="outline">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleNavigation('/warehouse/restock')}
+              >
                 <BarChart className="h-4 w-4 mr-2" /> View Report
               </Button>
             </div>
@@ -175,11 +226,22 @@ const WarehouseDashboard = () => {
                       {i === 0 ? "Pending Approval" : "Approved"}
                     </Badge>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleNavigation('/warehouse/restock')}
+                      >
                         Details
                       </Button>
                       {i === 0 && (
-                        <Button size="sm">
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            toast.success("Restock request approved", {
+                              description: "The restock request has been approved and sent to the supplier."
+                            });
+                          }}
+                        >
                           Approve
                         </Button>
                       )}
