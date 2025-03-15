@@ -9,18 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardRole } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthFormProps {
   mode: "login" | "register";
   className?: string;
 }
-
-// Demo credentials for testing
-const DEMO_USERS = {
-  "admin@intelliorder.com": { password: "admin123", role: "admin" as DashboardRole },
-  "warehouse@intelliorder.com": { password: "warehouse123", role: "warehouse" as DashboardRole },
-  "support@intelliorder.com": { password: "support123", role: "support" as DashboardRole },
-};
 
 const AuthForm = ({ mode, className }: AuthFormProps) => {
   const [email, setEmail] = useState("");
@@ -39,35 +33,62 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
     setIsLoading(true);
     setLoginError("");
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      
+    try {
       if (mode === "login") {
-        // Check if the provided credentials match our demo users
-        const demoUser = DEMO_USERS[email as keyof typeof DEMO_USERS];
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         
-        if (demoUser && demoUser.password === password) {
-          const userRole = demoUser.role;
-          
-          toast({
-            title: "Logged in successfully",
-            description: `Redirecting to ${userRole} dashboard...`,
-          });
-          
-          navigate(`/dashboard/${userRole}`);
-        } else {
-          setLoginError("Invalid email or password");
+        if (error) {
+          throw error;
         }
+        
+        // Successfully logged in
+        toast({
+          title: "Logged in successfully",
+          description: "Redirecting to dashboard...",
+        });
+        
+        // Fetch user role from profiles table
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        
+        const userRole = profileData?.role as DashboardRole || "admin";
+        navigate(`/dashboard/${userRole}`);
+        
       } else {
+        // Registration
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              role: role, // Store role in user metadata
+            },
+          },
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
         toast({
           title: "Account created successfully",
-          description: "Please log in with your new credentials.",
+          description: "Please check your email for confirmation.",
         });
         
         navigate("/login");
       }
-    }, 1500);
+    } catch (error: any) {
+      setLoginError(error.message || "An error occurred during authentication");
+      console.error("Authentication error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -123,6 +144,7 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="h-11 pr-10"
+              minLength={6}
             />
             <button
               type="button"
