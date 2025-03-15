@@ -71,8 +71,11 @@ const App = () => (
           <Route path="/support/messages" element={<SupportMessagesPage />} />
           <Route path="/support/messages/:id" element={<MessageView />} />
           
-          {/* Redirect /dashboard to the appropriate dashboard based on role */}
-          <Route path="/dashboard" element={<Navigate to="/dashboard/admin" replace />} />
+          {/* Redirect /dashboard to role-specific dashboard based on profile data */}
+          <Route 
+            path="/dashboard" 
+            element={<Navigate to="/login" replace />} 
+          />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
