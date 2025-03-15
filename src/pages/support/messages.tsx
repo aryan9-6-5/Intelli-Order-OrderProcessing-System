@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
 import { MessageSquare, Search, ArrowRight, Filter } from "lucide-react";
@@ -8,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const SupportMessagesPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Mock messages data
@@ -71,10 +72,7 @@ const SupportMessagesPage = () => {
   };
 
   const handleViewMessage = (id: string) => {
-    toast({
-      title: "Message opened",
-      description: `Opening message: ${id}`,
-    });
+    navigate(`/support/messages/${id}`);
   };
 
   const formatDate = (dateString: string) => {

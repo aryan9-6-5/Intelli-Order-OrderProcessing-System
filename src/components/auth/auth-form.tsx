@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
@@ -44,20 +43,27 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
           throw error;
         }
         
-        // Successfully logged in
-        toast({
-          title: "Logged in successfully",
-          description: "Redirecting to dashboard...",
-        });
-        
         // Fetch user role from profiles table
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single();
         
+        if (profileError) {
+          console.error("Error fetching user profile:", profileError);
+          throw new Error("Error fetching user role. Please try again.");
+        }
+        
         const userRole = profileData?.role as DashboardRole || "admin";
+        
+        // Successfully logged in
+        toast({
+          title: "Logged in successfully",
+          description: `Redirecting to ${userRole} dashboard...`,
+        });
+        
+        // Redirect based on user role
         navigate(`/dashboard/${userRole}`);
         
       } else {
@@ -74,6 +80,21 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
         
         if (error) {
           throw error;
+        }
+        
+        // Insert user role in profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: data.user!.id,
+              role: role
+            }
+          ]);
+        
+        if (profileError) {
+          console.error("Error creating user profile:", profileError);
+          // Continue anyway as the auth part worked
         }
         
         toast({

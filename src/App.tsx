@@ -30,6 +30,7 @@ import SupportOrdersPage from "./pages/support/orders";
 import SupportRefundsPage from "./pages/support/refunds";
 import SupportFraudPage from "./pages/support/fraud";
 import SupportMessagesPage from "./pages/support/messages";
+import MessageView from "./pages/support/message-view";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/support/refunds" element={<SupportRefundsPage />} />
           <Route path="/support/fraud" element={<SupportFraudPage />} />
           <Route path="/support/messages" element={<SupportMessagesPage />} />
+          <Route path="/support/messages/:id" element={<MessageView />} />
           
           {/* Redirect /dashboard to the appropriate dashboard based on role */}
           <Route path="/dashboard" element={<Navigate to="/dashboard/admin" replace />} />
