@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   BarChart3, 
@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { DashboardRole } from "@/types";
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -50,16 +52,45 @@ const SidebarItem = ({ icon: Icon, label, href, active, onClick }: SidebarItemPr
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  role: "admin" | "warehouse" | "support";
+  role: DashboardRole;
 }
 
 const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userData, setUserData] = useState({ name: "", email: "", avatar: "" });
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const handleLogout = () => {
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Get user profile
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+          
+        const userRole = data?.role || role;
+        const displayName = user.email?.split('@')[0] || `${userRole} User`;
+        
+        setUserData({
+          name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+          email: user.email || `${userRole}@intelliorder.com`,
+          avatar: ""
+        });
+      }
+    };
+    
+    getUserData();
+  }, [role]);
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    
     toast({
       title: "Logged out successfully",
       description: "Redirecting to login page...",
@@ -100,20 +131,6 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
   };
   
   const navItems = getNavItems();
-  
-  // Get user data based on role
-  const getUserData = () => {
-    switch (role) {
-      case "admin":
-        return { name: "Admin User", email: "admin@intelliorder.com", avatar: "" };
-      case "warehouse":
-        return { name: "Warehouse Staff", email: "warehouse@intelliorder.com", avatar: "" };
-      case "support":
-        return { name: "Support Agent", email: "support@intelliorder.com", avatar: "" };
-    }
-  };
-  
-  const userData = getUserData();
   
   return (
     <div className="flex min-h-screen bg-muted/30">

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
@@ -34,6 +35,7 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
     
     try {
       if (mode === "login") {
+        // Login
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -82,20 +84,8 @@ const AuthForm = ({ mode, className }: AuthFormProps) => {
           throw error;
         }
         
-        // Insert user role in profiles table
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: data.user!.id,
-              role: role
-            }
-          ]);
-        
-        if (profileError) {
-          console.error("Error creating user profile:", profileError);
-          // Continue anyway as the auth part worked
-        }
+        // The profile entry will be created by the database trigger
+        // that you've fixed directly in Supabase
         
         toast({
           title: "Account created successfully",
