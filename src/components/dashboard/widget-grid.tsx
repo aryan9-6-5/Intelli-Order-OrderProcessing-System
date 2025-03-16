@@ -42,11 +42,13 @@ const WidgetGrid = ({ role, className }: WidgetGridProps) => {
             />
             <StatCard
               title="Revenue"
-              value="$194,320"
+              value="194320"
               description="Last 30 days"
               icon={<BarChart3 className="h-4 w-4" />}
               trend={{ value: 9.3, positive: true }}
               className="animate-fade-in opacity-0 animation-delay-300"
+              isCurrency={true}
+              currencyType="rupee"
             />
           </div>
         );
@@ -106,9 +108,11 @@ const WidgetGrid = ({ role, className }: WidgetGridProps) => {
             />
             <StatCard
               title="Pending Refunds"
-              value="15"
-              description="$3,240 total value"
+              value="3240"
+              description="Total value"
               icon={<CreditCard className="h-4 w-4" />}
+              isCurrency={true}
+              currencyType="rupee"
               className="animate-fade-in opacity-0 animation-delay-200"
             />
           </div>

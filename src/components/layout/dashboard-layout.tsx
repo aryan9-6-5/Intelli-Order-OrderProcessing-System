@@ -97,6 +97,25 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
     
     navigate("/login");
   };
+
+  const handleProfileClick = () => {
+    navigate(`/dashboard/${role}`);
+    toast({
+      title: "Profile",
+      description: `Viewing ${userData.name}'s profile`,
+    });
+  };
+
+  const handleSettingsClick = () => {
+    if (role === "admin") {
+      navigate("/admin/settings");
+    } else {
+      toast({
+        title: "Settings",
+        description: "Settings page is under development.",
+      });
+    }
+  };
   
   const getNavItems = () => {
     switch (role) {
@@ -213,16 +232,11 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           
           <div className="ml-auto flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/dashboard/${role}`)}>
+            <Button variant="ghost" size="icon" onClick={handleProfileClick}>
               <User className="h-5 w-5" />
               <span className="sr-only">Profile</span>
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => {
-              toast({
-                title: "Settings",
-                description: "Settings page is under development.",
-              });
-            }}>
+            <Button variant="ghost" size="icon" onClick={handleSettingsClick}>
               <Settings className="h-5 w-5" />
               <span className="sr-only">Settings</span>
             </Button>

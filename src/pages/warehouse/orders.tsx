@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
 import { 
@@ -9,13 +8,15 @@ import {
   ArrowUp, 
   Check, 
   AlertTriangle, 
-  Truck 
+  Truck,
+  Download
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for orders
 const mockOrders = [
@@ -122,6 +123,16 @@ const mockOrders = [
   },
 ];
 
+// Convert USD to INR
+const usdToInr = (usdAmount: number): number => {
+  return usdAmount * 83.5; // Using an approximate conversion rate
+};
+
+// Format currency in rupees
+const formatRupees = (amount: number): string => {
+  return `₹${usdToInr(amount).toLocaleString('en-IN')}`;
+};
+
 // Order status definitions
 const orderStatuses = {
   pending: { label: "Pending", color: "bg-amber-500" },
@@ -149,6 +160,7 @@ const WarehouseOrdersPage = () => {
   const [sortBy, setSortBy] = useState<string>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Handle sort changes
   const handleSort = (field: string) => {
@@ -202,13 +214,56 @@ const WarehouseOrdersPage = () => {
   // Process an order
   const processOrder = (orderId: string) => {
     console.log(`Processing order ${orderId}`);
+    toast({
+      title: "Order processed",
+      description: `Order ${orderId} has been marked for processing.`,
+    });
     // In a real app, this would update the order status in the database
   };
 
   // Ship an order
   const shipOrder = (orderId: string) => {
     console.log(`Shipping order ${orderId}`);
+    toast({
+      title: "Order shipped",
+      description: `Order ${orderId} has been marked for shipping.`,
+    });
     // In a real app, this would update the order status and trigger shipping processes
+  };
+
+  // Export orders to CSV
+  const exportOrders = () => {
+    // Create CSV content
+    const headers = ["Order ID", "Customer ID", "Total (₹)", "Status", "Priority", "Created At"];
+    const csvContent = [
+      headers.join(','),
+      ...filteredOrders.map(order => [
+        order.id,
+        order.customerId,
+        usdToInr(order.total).toFixed(2),
+        order.status,
+        order.priority,
+        order.createdAt
+      ].join(','))
+    ].join('\n');
+    
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `orders-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export successful",
+      description: `${filteredOrders.length} orders exported to CSV.`,
+    });
   };
 
   return (
@@ -256,6 +311,14 @@ const WarehouseOrdersPage = () => {
                   <Filter className="h-4 w-4 mr-1" />
                   Normal Priority
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={exportOrders}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
               </div>
             </div>
           </div>
@@ -268,7 +331,12 @@ const WarehouseOrdersPage = () => {
                 {filterPriority ? `(${filterPriority} priority)` : ""}
               </h2>
               <div className="flex gap-3">
-                <Button size="sm">
+                <Button size="sm" onClick={() => {
+                  toast({
+                    title: "Batch processing",
+                    description: "Processing all high priority orders...",
+                  });
+                }}>
                   Process All High Priority
                 </Button>
               </div>
@@ -378,7 +446,7 @@ const WarehouseOrdersPage = () => {
                       
                       {/* Total */}
                       <div className="col-span-6 md:col-span-1 font-medium">
-                        ${order.total.toFixed(2)}
+                        {formatRupees(order.total)}
                       </div>
                       
                       {/* Date - Hidden on mobile, shown in expanded view */}
@@ -468,9 +536,9 @@ const WarehouseOrdersPage = () => {
                                 <div key={idx} className="grid grid-cols-12 gap-4 p-3 text-sm">
                                   <div className="col-span-6">{item.name}</div>
                                   <div className="col-span-2 text-center">{item.quantity}</div>
-                                  <div className="col-span-2 text-right">${item.price.toFixed(2)}</div>
+                                  <div className="col-span-2 text-right">{formatRupees(item.price)}</div>
                                   <div className="col-span-2 text-right font-medium">
-                                    ${(item.quantity * item.price).toFixed(2)}
+                                    {formatRupees(item.quantity * item.price)}
                                   </div>
                                 </div>
                               ))}
@@ -479,15 +547,15 @@ const WarehouseOrdersPage = () => {
                               <div className="w-1/3">
                                 <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Subtotal:</span>
-                                  <span>${order.total.toFixed(2)}</span>
+                                  <span>{formatRupees(order.total)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                   <span className="text-muted-foreground">Shipping:</span>
-                                  <span>$0.00</span>
+                                  <span>₹0</span>
                                 </div>
                                 <div className="flex justify-between font-medium mt-1 pt-1 border-t border-border">
                                   <span>Total:</span>
-                                  <span>${order.total.toFixed(2)}</span>
+                                  <span>{formatRupees(order.total)}</span>
                                 </div>
                               </div>
                             </div>
@@ -499,10 +567,10 @@ const WarehouseOrdersPage = () => {
                           <Button variant="outline" onClick={() => toggleOrderExpansion(order.id)}>
                             Close Details
                           </Button>
-                          <Button variant="outline">
+                          <Button variant="outline" onClick={() => shipOrder(order.id)}>
                             <Truck className="h-4 w-4 mr-2" /> Ship
                           </Button>
-                          <Button>
+                          <Button onClick={() => processOrder(order.id)}>
                             <PackageOpen className="h-4 w-4 mr-2" /> Process
                           </Button>
                         </div>
@@ -520,3 +588,4 @@ const WarehouseOrdersPage = () => {
 };
 
 export default WarehouseOrdersPage;
+

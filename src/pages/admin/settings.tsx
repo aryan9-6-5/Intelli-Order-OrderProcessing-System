@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
-import { Save, Shield, Bell, User, Lock, Globe, Cloud } from "lucide-react";
+import { Save, Shield, Bell, User, Lock, Globe, Cloud, Download } from "lucide-react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,16 +15,31 @@ const AdminSettingsPage = () => {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = (type: string = "settings") => {
     setSaving(true);
     // Simulate API call
     setTimeout(() => {
       setSaving(false);
       toast({
-        title: "Settings saved",
-        description: "Your settings have been updated successfully.",
+        title: `${type} saved`,
+        description: `Your ${type.toLowerCase()} have been updated successfully.`,
       });
     }, 1000);
+  };
+
+  const handleExportData = (dataType: string) => {
+    toast({
+      title: "Export started",
+      description: `${dataType} export is in progress. You'll be notified when it's complete.`,
+    });
+    
+    // Simulate export process
+    setTimeout(() => {
+      toast({
+        title: "Export complete",
+        description: `${dataType} data has been exported successfully.`,
+      });
+    }, 2000);
   };
 
   return (
@@ -35,11 +50,21 @@ const AdminSettingsPage = () => {
       
       <DashboardLayout role="admin">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your account settings and application preferences.
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage your account settings and application preferences.
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => handleExportData("Settings")}
+              className="hidden sm:flex"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Settings
+            </Button>
           </div>
           
           <Tabs defaultValue="profile" className="space-y-4">
@@ -91,7 +116,7 @@ const AdminSettingsPage = () => {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button onClick={handleSaveSettings} disabled={saving}>
+                    <Button onClick={() => handleSaveSettings("Profile")} disabled={saving}>
                       {saving ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
@@ -126,7 +151,7 @@ const AdminSettingsPage = () => {
                         Password should be at least 8 characters
                       </span>
                     </div>
-                    <Button onClick={handleSaveSettings} disabled={saving}>
+                    <Button onClick={() => handleSaveSettings("Password")} disabled={saving}>
                       {saving ? "Updating..." : "Update Password"}
                     </Button>
                   </div>
@@ -145,7 +170,7 @@ const AdminSettingsPage = () => {
                         Add an extra layer of security to your account
                       </div>
                     </div>
-                    <Switch />
+                    <Switch onChange={() => handleSaveSettings("Security settings")} />
                   </div>
                 </CardContent>
               </Card>
@@ -172,12 +197,18 @@ const AdminSettingsPage = () => {
                             {item.description}
                           </div>
                         </div>
-                        <Switch defaultChecked={index < 3} />
+                        <Switch 
+                          defaultChecked={index < 3}
+                          onChange={() => toast({
+                            title: `${item.label} updated`,
+                            description: `Preference has been saved.`,
+                          })}
+                        />
                       </div>
                     ))}
                   </div>
                   <div className="mt-6 flex justify-end">
-                    <Button onClick={handleSaveSettings} disabled={saving}>
+                    <Button onClick={() => handleSaveSettings("Notification preferences")} disabled={saving}>
                       {saving ? "Saving..." : "Save Preferences"}
                     </Button>
                   </div>
@@ -206,6 +237,10 @@ const AdminSettingsPage = () => {
                         <Button 
                           variant={integration.status === "Connected" ? "outline" : "default"}
                           size="sm"
+                          onClick={() => toast({
+                            title: integration.status === "Connected" ? "Disconnected" : "Connected",
+                            description: `${integration.name} has been ${integration.status === "Connected" ? "disconnected" : "connected"} successfully.`,
+                          })}
                         >
                           {integration.status === "Connected" ? "Disconnect" : "Connect"}
                         </Button>
@@ -230,6 +265,10 @@ const AdminSettingsPage = () => {
                           id="timezone" 
                           className="w-full p-2 rounded-md border border-input bg-background"
                           defaultValue="UTC-5"
+                          onChange={() => toast({
+                            title: "Timezone updated",
+                            description: "Your timezone preference has been saved.",
+                          })}
                         >
                           <option value="UTC-8">Pacific Time (UTC-8)</option>
                           <option value="UTC-7">Mountain Time (UTC-7)</option>
@@ -237,6 +276,7 @@ const AdminSettingsPage = () => {
                           <option value="UTC-5">Eastern Time (UTC-5)</option>
                           <option value="UTC">UTC</option>
                           <option value="UTC+1">Central European Time (UTC+1)</option>
+                          <option value="UTC+5:30">Indian Standard Time (UTC+5:30)</option>
                         </select>
                       </div>
                       <div className="space-y-2">
@@ -245,6 +285,10 @@ const AdminSettingsPage = () => {
                           id="dateFormat" 
                           className="w-full p-2 rounded-md border border-input bg-background"
                           defaultValue="MM/DD/YYYY"
+                          onChange={() => toast({
+                            title: "Date format updated",
+                            description: "Your date format preference has been saved.",
+                          })}
                         >
                           <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                           <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -260,7 +304,10 @@ const AdminSettingsPage = () => {
                           Put the system in maintenance mode
                         </div>
                       </div>
-                      <Switch />
+                      <Switch onChange={() => toast({
+                        title: "Maintenance mode updated",
+                        description: "System maintenance mode setting has been saved.",
+                      })} />
                     </div>
                     
                     <div className="flex items-center justify-between mt-2">
@@ -270,7 +317,10 @@ const AdminSettingsPage = () => {
                           Enable detailed error logging
                         </div>
                       </div>
-                      <Switch />
+                      <Switch onChange={() => toast({
+                        title: "Debug mode updated",
+                        description: "System debug mode setting has been saved.",
+                      })} />
                     </div>
                     
                     <div className="flex items-center justify-between mt-2">
@@ -280,12 +330,15 @@ const AdminSettingsPage = () => {
                           Enable automatic daily backups
                         </div>
                       </div>
-                      <Switch defaultChecked />
+                      <Switch defaultChecked onChange={() => toast({
+                        title: "Backup settings updated",
+                        description: "Database backup settings have been saved.",
+                      })} />
                     </div>
                   </div>
                   
                   <div className="mt-6 flex justify-end">
-                    <Button onClick={handleSaveSettings} className="flex items-center gap-2" disabled={saving}>
+                    <Button onClick={() => handleSaveSettings("System settings")} className="flex items-center gap-2" disabled={saving}>
                       <Save className="h-4 w-4" />
                       {saving ? "Saving..." : "Save System Settings"}
                     </Button>

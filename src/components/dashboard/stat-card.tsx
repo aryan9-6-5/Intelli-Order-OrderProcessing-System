@@ -13,7 +13,25 @@ interface StatCardProps {
     positive: boolean;
   };
   className?: string;
+  isCurrency?: boolean;
+  currencyType?: 'rupee' | 'dollar';
 }
+
+const formatCurrency = (value: string | number, currencyType: 'rupee' | 'dollar' = 'rupee'): string => {
+  if (typeof value === 'string' && !value.trim()) return value;
+  
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, "")) : value;
+  
+  if (isNaN(numValue)) return String(value);
+  
+  if (currencyType === 'rupee') {
+    // Convert dollar to rupee (approximate conversion rate)
+    const rupeeValue = numValue * 83.5; // Using an approximate conversion rate
+    return `₹${rupeeValue.toLocaleString('en-IN')}`;
+  } else {
+    return `$${numValue.toLocaleString('en-US')}`;
+  }
+};
 
 const StatCard = ({ 
   title, 
@@ -21,8 +39,12 @@ const StatCard = ({
   description, 
   icon, 
   trend, 
-  className 
+  className,
+  isCurrency = false,
+  currencyType = 'rupee'
 }: StatCardProps) => {
+  const displayValue = isCurrency ? formatCurrency(value, currencyType) : value;
+  
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -36,7 +58,7 @@ const StatCard = ({
         )}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold">{displayValue}</div>
         {(description || trend) && (
           <div className="flex items-center mt-1">
             {trend && (
