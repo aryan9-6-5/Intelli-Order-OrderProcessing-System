@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
 import { Search, Filter, AlertTriangle, ArrowUpDown, ShieldAlert, Check, X, Eye } from "lucide-react";
@@ -35,6 +34,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+// Import AI components
+import FraudScoreBadge from "@/components/fraud/fraud-score-badge";
+import FraudFeaturesDisplay from "@/components/fraud/fraud-features-display";
 
 // Mock data
 const mockSuspiciousTransactions = [
@@ -285,7 +288,10 @@ const AdminFraudPage = () => {
                           <TableCell className="font-medium">{transaction.id}</TableCell>
                           <TableCell>{transaction.customer}</TableCell>
                           <TableCell>{transaction.orderId}</TableCell>
-                          <TableCell>{getRiskBadge(transaction.riskLevel)}</TableCell>
+                          <TableCell>
+                            {/* Replace with AI-powered FraudScoreBadge */}
+                            <FraudScoreBadge transactionId={transaction.id} />
+                          </TableCell>
                           <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                           <TableCell>${transaction.amount.toFixed(2)}</TableCell>
                           <TableCell className="text-right">
@@ -383,8 +389,14 @@ const AdminFraudPage = () => {
               
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Risk Level</h4>
-                <div>{getRiskBadge(selectedTransaction.riskLevel)}</div>
+                <div>
+                  {/* Replace with AI-powered FraudScoreBadge */}
+                  <FraudScoreBadge transactionId={selectedTransaction.id} showScore={true} />
+                </div>
               </div>
+              
+              {/* Add AI-powered risk factors display */}
+              <FraudFeaturesDisplay transactionId={selectedTransaction.id} />
               
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Detected Flags</h4>

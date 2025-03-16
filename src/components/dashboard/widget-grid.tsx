@@ -1,9 +1,11 @@
 
 import React from "react";
-import { BarChart3, Box, CreditCard, ShieldAlert, ShoppingCart, Truck, PackageOpen, AlertTriangle } from "lucide-react";
+import { BarChart3, Box, CreditCard, ShieldAlert, ShoppingCart, Truck, PackageOpen, AlertTriangle, TrendingUp } from "lucide-react";
 import StatCard from "@/components/dashboard/stat-card";
 import { cn } from "@/lib/utils";
 import { DashboardRole } from "@/types";
+import { useFraudCases } from "@/hooks/use-fraud-detection";
+import { useProductForecast } from "@/hooks/use-inventory-prediction";
 
 interface WidgetGridProps {
   role: DashboardRole;
@@ -11,6 +13,14 @@ interface WidgetGridProps {
 }
 
 const WidgetGrid = ({ role, className }: WidgetGridProps) => {
+  // Fetch summary data for AI-powered widgets
+  const { data: fraudCases } = useFraudCases();
+  const { data: productForecast } = useProductForecast("PRD-1001"); // Using a default product ID
+  
+  // Calculate AI-powered metrics
+  const highRiskCount = fraudCases?.filter(c => c.risk_score > 0.7).length || 0;
+  const forecastedDemand = productForecast?.forecast_data?.summary?.total_demand || 0;
+  
   // Render different widgets based on user role
   const renderWidgets = () => {
     switch (role) {
@@ -27,11 +37,12 @@ const WidgetGrid = ({ role, className }: WidgetGridProps) => {
             />
             <StatCard
               title="Fraud Alerts"
-              value="24"
-              description="15 resolved this week"
+              value={highRiskCount || "24"}
+              description="Based on AI risk scoring"
               icon={<ShieldAlert className="h-4 w-4" />}
               trend={{ value: 6.2, positive: false }}
               className="animate-fade-in opacity-0 animation-delay-100"
+              modelPowered={true}
             />
             <StatCard
               title="Low Stock Items"
@@ -72,12 +83,13 @@ const WidgetGrid = ({ role, className }: WidgetGridProps) => {
               className="animate-fade-in opacity-0 animation-delay-100"
             />
             <StatCard
-              title="Stock Alerts"
-              value="12"
-              description="5 critical items"
-              icon={<AlertTriangle className="h-4 w-4" />}
-              trend={{ value: 3.2, positive: false }}
+              title="Forecasted Demand"
+              value={forecastedDemand || "412"}
+              description="Next 7 days"
+              icon={<TrendingUp className="h-4 w-4" />}
+              trend={{ value: 11.2, positive: true }}
               className="animate-fade-in opacity-0 animation-delay-200"
+              modelPowered={true}
             />
             <StatCard
               title="Processing Time"
@@ -101,10 +113,11 @@ const WidgetGrid = ({ role, className }: WidgetGridProps) => {
             />
             <StatCard
               title="Fraud Disputes"
-              value="18"
-              description="6 require attention"
+              value={highRiskCount || "18"}
+              description="AI-detected high risk cases"
               icon={<ShieldAlert className="h-4 w-4" />}
               className="animate-fade-in opacity-0 animation-delay-100"
+              modelPowered={true}
             />
             <StatCard
               title="Pending Refunds"

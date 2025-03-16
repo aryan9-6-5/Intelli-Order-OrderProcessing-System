@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
 import { Search, Filter, Plus, ArrowUpDown, AlertTriangle, BarChart, Package } from "lucide-react";
@@ -21,9 +20,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import ForecastChart from "@/components/inventory/forecast-chart";
+import RestockRecommendation from "@/components/inventory/restock-recommendation";
 
-// Mock data
 const mockProducts = [
   {
     id: "PRD-1001",
@@ -105,7 +110,8 @@ const AdminInventoryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<InventoryStatus>("all");
   const [showDiscontinued, setShowDiscontinued] = useState(false);
-  
+  const [selectedProductId, setSelectedProductId] = useState<string>("PRD-1001");
+
   const filteredProducts = mockProducts.filter(product => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,7 +122,7 @@ const AdminInventoryPage = () => {
     
     return matchesSearch && matchesTab;
   });
-  
+
   const getStockBadge = (status: string, stock: number) => {
     switch (status) {
       case "in-stock":
@@ -214,6 +220,15 @@ const AdminInventoryPage = () => {
             </div>
           </div>
           
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <ForecastChart productId={selectedProductId} />
+            </div>
+            <div>
+              <RestockRecommendation productId={selectedProductId} />
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-card rounded-lg p-4 border">
               <div className="flex justify-between items-start">
@@ -273,7 +288,11 @@ const AdminInventoryPage = () => {
                   <TableBody>
                     {filteredProducts.length > 0 ? (
                       filteredProducts.map((product) => (
-                        <TableRow key={product.id} className="cursor-pointer hover:bg-muted/50">
+                        <TableRow 
+                          key={product.id} 
+                          className={`cursor-pointer hover:bg-muted/50 ${selectedProductId === product.id ? 'bg-muted/50' : ''}`}
+                          onClick={() => setSelectedProductId(product.id)}
+                        >
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>{product.sku}</TableCell>
                           <TableCell>{product.category}</TableCell>
@@ -300,3 +319,4 @@ const AdminInventoryPage = () => {
 };
 
 export default AdminInventoryPage;
+

@@ -2,6 +2,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface StatCardProps {
   title: string;
@@ -15,6 +16,8 @@ interface StatCardProps {
   className?: string;
   isCurrency?: boolean;
   currencyType?: 'rupee' | 'dollar';
+  loading?: boolean;
+  modelPowered?: boolean;
 }
 
 const formatCurrency = (value: string | number, currencyType: 'rupee' | 'dollar' = 'rupee'): string => {
@@ -41,15 +44,43 @@ const StatCard = ({
   trend, 
   className,
   isCurrency = false,
-  currencyType = 'rupee'
+  currencyType = 'rupee',
+  loading = false,
+  modelPowered = false
 }: StatCardProps) => {
   const displayValue = isCurrency ? formatCurrency(value, currencyType) : value;
+  
+  if (loading) {
+    return (
+      <Card className={cn("overflow-hidden", className)}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          {icon && (
+            <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
+              {icon}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-8 w-24 mb-2" />
+          <Skeleton className="h-4 w-32" />
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
           {title}
+          {modelPowered && (
+            <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-sm">
+              AI
+            </span>
+          )}
         </CardTitle>
         {icon && (
           <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
