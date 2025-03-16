@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 // Pages
 import Index from "./pages/Index";
@@ -42,7 +42,6 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Check initial auth state
     const checkAuthState = async () => {
       await supabase.auth.getSession();
       setIsLoading(false);
@@ -50,7 +49,6 @@ const App = () => {
     
     checkAuthState();
     
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async () => {
       setIsLoading(false);
     });
@@ -69,123 +67,117 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Protected dashboard routes */}
-            <Route path="/dashboard/admin" element={
-              <AuthRoute requiredRole="admin">
-                <AdminDashboard />
-              </AuthRoute>
-            } />
-            <Route path="/dashboard/warehouse" element={
-              <AuthRoute requiredRole="warehouse">
-                <WarehouseDashboard />
-              </AuthRoute>
-            } />
-            <Route path="/dashboard/support" element={
-              <AuthRoute requiredRole="support">
-                <SupportDashboard />
-              </AuthRoute>
-            } />
-            
-            {/* Protected admin routes */}
-            <Route path="/admin/orders" element={
-              <AuthRoute requiredRole="admin">
-                <AdminOrdersPage />
-              </AuthRoute>
-            } />
-            <Route path="/admin/inventory" element={
-              <AuthRoute requiredRole="admin">
-                <AdminInventoryPage />
-              </AuthRoute>
-            } />
-            <Route path="/admin/reports" element={
-              <AuthRoute requiredRole="admin">
-                <AdminReportsPage />
-              </AuthRoute>
-            } />
-            <Route path="/admin/fraud" element={
-              <AuthRoute requiredRole="admin">
-                <AdminFraudPage />
-              </AuthRoute>
-            } />
-            <Route path="/admin/staff" element={
-              <AuthRoute requiredRole="admin">
-                <AdminStaffPage />
-              </AuthRoute>
-            } />
-            <Route path="/admin/settings" element={
-              <AuthRoute requiredRole="admin">
-                <AdminSettingsPage />
-              </AuthRoute>
-            } />
-            
-            {/* Protected warehouse routes */}
-            <Route path="/warehouse/orders" element={
-              <AuthRoute requiredRole="warehouse">
-                <WarehouseOrdersPage />
-              </AuthRoute>
-            } />
-            <Route path="/warehouse/shipment" element={
-              <AuthRoute requiredRole="warehouse">
-                <WarehouseShipmentPage />
-              </AuthRoute>
-            } />
-            <Route path="/warehouse/restock" element={
-              <AuthRoute requiredRole="warehouse">
-                <WarehouseRestockPage />
-              </AuthRoute>
-            } />
-            
-            {/* Protected support routes */}
-            <Route path="/support/orders" element={
-              <AuthRoute requiredRole="support">
-                <SupportOrdersPage />
-              </AuthRoute>
-            } />
-            <Route path="/support/refunds" element={
-              <AuthRoute requiredRole="support">
-                <SupportRefundsPage />
-              </AuthRoute>
-            } />
-            <Route path="/support/fraud" element={
-              <AuthRoute requiredRole="support">
-                <SupportFraudPage />
-              </AuthRoute>
-            } />
-            <Route path="/support/messages" element={
-              <AuthRoute requiredRole="support">
-                <SupportMessagesPage />
-              </AuthRoute>
-            } />
-            <Route path="/support/messages/:id" element={
-              <AuthRoute requiredRole="support">
-                <MessageView />
-              </AuthRoute>
-            } />
-            
-            {/* Redirect /dashboard to role-specific dashboard */}
-            <Route path="/dashboard" element={<DashboardRedirect />} />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              <Route path="/dashboard/admin" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminDashboard />
+                </AuthRoute>
+              } />
+              <Route path="/dashboard/warehouse" element={
+                <AuthRoute requiredRole="warehouse">
+                  <WarehouseDashboard />
+                </AuthRoute>
+              } />
+              <Route path="/dashboard/support" element={
+                <AuthRoute requiredRole="support">
+                  <SupportDashboard />
+                </AuthRoute>
+              } />
+              
+              <Route path="/admin/orders" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminOrdersPage />
+                </AuthRoute>
+              } />
+              <Route path="/admin/inventory" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminInventoryPage />
+                </AuthRoute>
+              } />
+              <Route path="/admin/reports" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminReportsPage />
+                </AuthRoute>
+              } />
+              <Route path="/admin/fraud" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminFraudPage />
+                </AuthRoute>
+              } />
+              <Route path="/admin/staff" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminStaffPage />
+                </AuthRoute>
+              } />
+              <Route path="/admin/settings" element={
+                <AuthRoute requiredRole="admin">
+                  <AdminSettingsPage />
+                </AuthRoute>
+              } />
+              
+              <Route path="/warehouse/orders" element={
+                <AuthRoute requiredRole="warehouse">
+                  <WarehouseOrdersPage />
+                </AuthRoute>
+              } />
+              <Route path="/warehouse/shipment" element={
+                <AuthRoute requiredRole="warehouse">
+                  <WarehouseShipmentPage />
+                </AuthRoute>
+              } />
+              <Route path="/warehouse/restock" element={
+                <AuthRoute requiredRole="warehouse">
+                  <WarehouseRestockPage />
+                </AuthRoute>
+              } />
+              
+              <Route path="/support/orders" element={
+                <AuthRoute requiredRole="support">
+                  <SupportOrdersPage />
+                </AuthRoute>
+              } />
+              <Route path="/support/refunds" element={
+                <AuthRoute requiredRole="support">
+                  <SupportRefundsPage />
+                </AuthRoute>
+              } />
+              <Route path="/support/fraud" element={
+                <AuthRoute requiredRole="support">
+                  <SupportFraudPage />
+                </AuthRoute>
+              } />
+              <Route path="/support/messages" element={
+                <AuthRoute requiredRole="support">
+                  <SupportMessagesPage />
+                </AuthRoute>
+              } />
+              <Route path="/support/messages/:id" element={
+                <AuthRoute requiredRole="support">
+                  <MessageView />
+                </AuthRoute>
+              } />
+              
+              <Route path="/dashboard" element={<DashboardRedirect />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 
-// Component to handle dashboard redirection based on user role
 const DashboardRedirect = () => {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);

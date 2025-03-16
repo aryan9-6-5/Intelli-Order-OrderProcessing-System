@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -25,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardRole } from "@/types";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -67,7 +67,6 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Get user profile
         const { data } = await supabase
           .from('profiles')
           .select('role')
@@ -99,7 +98,6 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
     navigate("/login");
   };
   
-  // Define navigation items based on role
   const getNavItems = () => {
     switch (role) {
       case "admin":
@@ -134,7 +132,6 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
   
   return (
     <div className="flex min-h-screen bg-muted/30">
-      {/* Mobile Sidebar Backdrop */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
@@ -142,7 +139,6 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
         />
       )}
       
-      {/* Sidebar */}
       <aside 
         className={cn(
           "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r transform transition-transform duration-300 ease-in-out md:translate-x-0",
@@ -204,9 +200,7 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
         </div>
       </aside>
       
-      {/* Main Content */}
       <main className="flex-1 md:ml-64">
-        {/* Header */}
         <header className="sticky top-0 z-30 bg-background/70 backdrop-blur-lg border-b h-14 flex items-center px-4">
           <Button 
             variant="ghost" 
@@ -218,6 +212,7 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           </Button>
           
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={() => navigate(`/dashboard/${role}`)}>
               <User className="h-5 w-5" />
               <span className="sr-only">Profile</span>
@@ -234,7 +229,6 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           </div>
         </header>
         
-        {/* Page Content */}
         <div className="p-4 md:p-6">{children}</div>
       </main>
     </div>
