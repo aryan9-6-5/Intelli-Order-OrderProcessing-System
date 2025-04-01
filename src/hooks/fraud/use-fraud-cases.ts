@@ -46,18 +46,21 @@ export const useFraudCases = (
           return filteredCases.slice(0, limit);
         }
         
-        // Make sure we're returning data with all the properties expected by the UI
-        // Use type assertion first to avoid TypeScript errors
+        // Map database results to FraudCase objects with all required properties
         return data.map(item => {
-          // Extract transaction_id from the database item
-          const { transaction_id } = item;
-          
-          // Create a new object with all the required properties
           return {
-            ...item,
-            // Add any missing properties that might be used in the UI
+            id: item.id,
+            transaction_id: item.transaction_id,
+            status: item.status,
+            risk_score: item.risk_score,
+            assigned_to: item.assigned_to,
+            notes: item.notes,
+            resolution: item.resolution,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            // Add missing UI properties with default values
             customer_name: 'Unknown Customer',
-            order_id: `ORD-${transaction_id.substring(3)}`,
+            order_id: `ORD-${item.transaction_id.substring(3)}`,
             amount: 0,
             payment_method: 'Unknown',
             flags: []
