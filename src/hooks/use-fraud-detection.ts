@@ -48,7 +48,7 @@ export const useFraudScore = (transactionId: string) => {
           throw error;
         }
         
-        return data as FraudScore;
+        return data as unknown as FraudScore;
       } catch (error) {
         console.error('Error in useFraudScore:', error);
         return mockFraudScores[transactionId] || null;
@@ -96,7 +96,7 @@ export const useFraudCases = (
           throw error;
         }
         
-        return data as FraudCase[];
+        return data as unknown as FraudCase[];
       } catch (error) {
         console.error('Error in useFraudCases:', error);
         let filteredCases = [...mockFraudCases];
@@ -142,7 +142,7 @@ export const useUpdateFraudCase = () => {
           throw error;
         }
         
-        return data[0] as FraudCase;
+        return data[0] as unknown as FraudCase;
       } catch (error) {
         console.error('Error in useUpdateFraudCase:', error);
         throw error;

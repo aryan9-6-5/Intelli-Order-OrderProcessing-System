@@ -58,7 +58,7 @@ export const useProductForecast = (productId: string, days: number = 30) => {
           throw error;
         }
         
-        return data as ProductForecast;
+        return data as unknown as ProductForecast;
       } catch (error) {
         console.error('Error in useProductForecast:', error);
         return mockForecasts[productId] || null;
@@ -99,7 +99,7 @@ export const useRestockRecommendations = (productId?: string) => {
           throw error;
         }
         
-        return data as RestockRecommendation[];
+        return data as unknown as RestockRecommendation[];
       } catch (error) {
         console.error('Error in useRestockRecommendations:', error);
         if (productId) {
@@ -139,7 +139,7 @@ export const useUpdateRestockRecommendation = () => {
           throw error;
         }
         
-        return data[0] as RestockRecommendation;
+        return data[0] as unknown as RestockRecommendation;
       } catch (error) {
         console.error('Error in useUpdateRestockRecommendation:', error);
         throw error;
