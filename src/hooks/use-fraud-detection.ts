@@ -1,6 +1,5 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 // Types for fraud detection
 export interface FraudScore {
@@ -24,25 +23,73 @@ export interface FraudCase {
   updated_at: string;
 }
 
+// Mock data for development until the actual tables are created
+const mockFraudScores: Record<string, FraudScore> = {
+  "TX-1001": {
+    id: "fs-1",
+    transaction_id: "TX-1001",
+    risk_score: 0.87,
+    features: {
+      unusual_location: 0.9,
+      payment_method_mismatch: 0.7,
+      order_value: 0.5,
+      account_age: 0.4,
+      multiple_shipping_addresses: 0.3
+    },
+    model_version: "hgnn-v1.0",
+    created_at: new Date().toISOString()
+  },
+  "TX-1002": {
+    id: "fs-2",
+    transaction_id: "TX-1002",
+    risk_score: 0.35,
+    features: {
+      unusual_location: 0.2,
+      payment_method_mismatch: 0.1,
+      order_value: 0.6,
+      account_age: 0.1,
+      multiple_shipping_addresses: 0.1
+    },
+    model_version: "hgnn-v1.0",
+    created_at: new Date().toISOString()
+  }
+};
+
+const mockFraudCases: FraudCase[] = [
+  {
+    id: "fc-1",
+    transaction_id: "TX-1001",
+    status: "pending-review",
+    risk_score: 0.87,
+    assigned_to: null,
+    notes: null,
+    resolution: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "fc-2",
+    transaction_id: "TX-1002",
+    status: "marked-safe",
+    risk_score: 0.35,
+    assigned_to: "user-1",
+    notes: "Verified with customer. Legitimate purchase.",
+    resolution: "Customer confirmed purchase via phone.",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
 // Fetches the fraud score for a specific transaction
 export const useFraudScore = (transactionId: string) => {
   return useQuery({
     queryKey: ['fraud-score', transactionId],
     queryFn: async () => {
-      // This would be replaced with an actual call to your Edge Function
-      // that uses the HGNN model to generate a fraud score
-      const { data, error } = await supabase
-        .from('fraud_scores')
-        .select('*')
-        .eq('transaction_id', transactionId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching fraud score:', error);
-        return null;
-      }
+      // Simulating API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      return data as FraudScore;
+      // Return mock data for the specified transaction ID
+      return mockFraudScores[transactionId] || null;
     },
     enabled: !!transactionId,
   });
@@ -56,24 +103,17 @@ export const useFraudCases = (
   return useQuery({
     queryKey: ['fraud-cases', status, limit],
     queryFn: async () => {
-      let query = supabase
-        .from('fraud_cases')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-        
+      // Simulating API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Filter cases by status if provided
+      let filteredCases = [...mockFraudCases];
       if (status) {
-        query = query.eq('status', status);
+        filteredCases = filteredCases.filter(c => c.status === status);
       }
       
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching fraud cases:', error);
-        return [];
-      }
-      
-      return data as FraudCase[];
+      // Apply limit
+      return filteredCases.slice(0, limit);
     },
   });
 };
@@ -83,18 +123,25 @@ export const useFraudNetworkGraph = (transactionId: string) => {
   return useQuery({
     queryKey: ['fraud-network', transactionId],
     queryFn: async () => {
-      // This would call your Edge Function that generates a graph visualization
-      // based on the HGNN model's internal representation
-      const { data, error } = await supabase.functions.invoke('fraud-network-graph', {
-        body: { transactionId },
-      });
+      // Simulating API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      if (error) {
-        console.error('Error fetching fraud network graph:', error);
-        return { nodes: [], edges: [] };
-      }
-      
-      return data;
+      // Mock graph data
+      return {
+        nodes: [
+          { id: "user-1", label: "User", type: "user" },
+          { id: transactionId, label: "Transaction", type: "transaction" },
+          { id: "device-1", label: "Device", type: "device" },
+          { id: "ip-1", label: "IP Address", type: "ip" },
+          { id: "product-1", label: "Product", type: "product" }
+        ],
+        edges: [
+          { source: "user-1", target: transactionId, type: "made" },
+          { source: "device-1", target: transactionId, type: "used-for" },
+          { source: "device-1", target: "ip-1", type: "connected-to" },
+          { source: transactionId, target: "product-1", type: "purchased" }
+        ]
+      };
     },
     enabled: !!transactionId,
   });

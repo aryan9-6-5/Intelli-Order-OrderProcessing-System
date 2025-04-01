@@ -1,6 +1,5 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 // Types for inventory predictions
 export interface ProductForecast {
@@ -34,34 +33,95 @@ export interface RestockRecommendation {
   updated_at: string;
 }
 
+// Mock data for development until the actual tables are created
+const mockForecasts: Record<string, ProductForecast> = {
+  "PRD-1001": {
+    id: "pf-1",
+    product_id: "PRD-1001",
+    forecast_data: {
+      daily_forecast: Array.from({ length: 14 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        const baseDemand = 50 + Math.sin(i / 2) * 20;
+        return {
+          date: date.toISOString().split('T')[0],
+          mean: baseDemand,
+          upper_bound: baseDemand * 1.2,
+          lower_bound: baseDemand * 0.8
+        };
+      }),
+      summary: {
+        total_demand: 720,
+        peak_day: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+        confidence: 0.85
+      }
+    },
+    updated_at: new Date().toISOString()
+  },
+  "PRD-1002": {
+    id: "pf-2",
+    product_id: "PRD-1002",
+    forecast_data: {
+      daily_forecast: Array.from({ length: 14 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        const baseDemand = 30 + Math.cos(i / 2) * 10;
+        return {
+          date: date.toISOString().split('T')[0],
+          mean: baseDemand,
+          upper_bound: baseDemand * 1.25,
+          lower_bound: baseDemand * 0.75
+        };
+      }),
+      summary: {
+        total_demand: 420,
+        peak_day: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        confidence: 0.78
+      }
+    },
+    updated_at: new Date().toISOString()
+  }
+};
+
+const mockRecommendations: Record<string, RestockRecommendation[]> = {
+  "PRD-1001": [
+    {
+      id: "rr-1",
+      product_id: "PRD-1001",
+      recommended_quantity: 500,
+      confidence_score: 0.92,
+      reasoning: "Based on forecasted demand peak in 5 days and current inventory levels, we recommend restocking 500 units to maintain optimal inventory balance while minimizing holding costs.",
+      source: "marl",
+      status: "pending",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  "PRD-1002": [
+    {
+      id: "rr-2",
+      product_id: "PRD-1002",
+      recommended_quantity: 250,
+      confidence_score: 0.85,
+      reasoning: "Recent sales pattern shows increased demand. LSTM model predicts 420 units needed in next 14 days, balanced against holding costs.",
+      source: "lstm",
+      status: "pending",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ]
+};
+
 // Fetches demand forecast for a specific product
 export const useProductForecast = (productId: string, days: number = 30) => {
   return useQuery({
     queryKey: ['product-forecast', productId, days],
     queryFn: async () => {
-      // Check if we have a recent forecast
-      const { data: existingForecast, error: fetchError } = await supabase
-        .from('product_forecasts')
-        .select('*')
-        .eq('product_id', productId)
-        .single();
-        
-      if (existingForecast) {
-        return existingForecast as ProductForecast;
-      }
+      // Simulating API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // If no existing forecast, request a new one from the Edge Function
-      // that runs the LSTM model
-      const { data, error } = await supabase.functions.invoke('inventory-forecast', {
-        body: { productId, forecastDays: days },
-      });
-      
-      if (error) {
-        console.error('Error generating forecast:', error);
-        return null;
-      }
-      
-      return data as ProductForecast;
+      // Return mock data for the specified product ID
+      return mockForecasts[productId] || null;
     },
     enabled: !!productId,
   });
@@ -72,23 +132,16 @@ export const useRestockRecommendations = (productId?: string) => {
   return useQuery({
     queryKey: ['restock-recommendations', productId],
     queryFn: async () => {
-      let query = supabase
-        .from('restock_recommendations')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
+      // Simulating API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       if (productId) {
-        query = query.eq('product_id', productId);
+        // Return recommendations for specific product
+        return mockRecommendations[productId] || [];
+      } else {
+        // Return all recommendations
+        return Object.values(mockRecommendations).flat();
       }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching restock recommendations:', error);
-        return [];
-      }
-      
-      return data as RestockRecommendation[];
     },
   });
 };
@@ -98,17 +151,22 @@ export const useAgentDecisionExplanation = (productId: string) => {
   return useQuery({
     queryKey: ['agent-explanation', productId],
     queryFn: async () => {
-      // This would call your Edge Function that explains the MARL agent's decision
-      const { data, error } = await supabase.functions.invoke('explain-agent-decision', {
-        body: { productId },
-      });
+      // Simulating API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      if (error) {
-        console.error('Error fetching agent explanation:', error);
-        return null;
-      }
-      
-      return data;
+      // Mock explanation data
+      return {
+        product_id: productId,
+        explanation: [
+          "Agent evaluated 5 potential actions based on current state.",
+          "Key factors: current inventory (32 units), lead time (5 days), demand forecast (420 units over 14 days).",
+          "Agent chose 'restock 250 units' with expected reward of 0.85.",
+          "Alternative actions considered: wait 1 day (-0.2 reward), order 100 units (0.4 reward), order 500 units (0.65 reward)."
+        ],
+        confidence: 0.85,
+        training_iterations: 250000,
+        model_version: "marl-v2.3"
+      };
     },
     enabled: !!productId,
   });
