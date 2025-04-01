@@ -47,15 +47,22 @@ export const useFraudCases = (
         }
         
         // Make sure we're returning data with all the properties expected by the UI
-        return data.map(item => ({
-          ...item,
-          // Add any missing properties that might be used in the UI
-          customer_name: item.customer_name || 'Unknown Customer',
-          order_id: item.order_id || `ORD-${item.transaction_id.substr(3)}`,
-          amount: item.amount || 0,
-          payment_method: item.payment_method || 'Unknown',
-          flags: item.flags || []
-        })) as FraudCase[];
+        // Use type assertion first to avoid TypeScript errors
+        return data.map(item => {
+          // Extract transaction_id from the database item
+          const { transaction_id } = item;
+          
+          // Create a new object with all the required properties
+          return {
+            ...item,
+            // Add any missing properties that might be used in the UI
+            customer_name: 'Unknown Customer',
+            order_id: `ORD-${transaction_id.substring(3)}`,
+            amount: 0,
+            payment_method: 'Unknown',
+            flags: []
+          } as FraudCase;
+        });
       } catch (error) {
         console.error('Error in useFraudCases:', error);
         let filteredCases = [...mockFraudCases];
