@@ -39,25 +39,30 @@ export const useProductForecast = (productId: string, days: number = 30) => {
   return useQuery({
     queryKey: ['product-forecast', productId, days],
     queryFn: async () => {
-      // First try to fetch from Supabase
-      const { data, error } = await supabase
-        .from('product_forecasts')
-        .select('*')
-        .eq('product_id', productId)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching product forecast:', error);
+      try {
+        // First try to fetch from Supabase
+        const { data, error } = await supabase
+          .from('product_forecasts')
+          .select('*')
+          .eq('product_id', productId)
+          .single();
         
-        // Fallback to mock data if no data in database
-        if (error.code === 'PGRST116') { // No rows returned
-          return mockForecasts[productId] || null;
+        if (error) {
+          console.error('Error fetching product forecast:', error);
+          
+          // Fallback to mock data if no data in database
+          if (error.code === 'PGRST116') { // No rows returned
+            return mockForecasts[productId] || null;
+          }
+          
+          throw error;
         }
         
-        throw error;
+        return data as ProductForecast;
+      } catch (error) {
+        console.error('Error in useProductForecast:', error);
+        return mockForecasts[productId] || null;
       }
-      
-      return data as ProductForecast;
     },
     enabled: !!productId,
   });
@@ -68,32 +73,41 @@ export const useRestockRecommendations = (productId?: string) => {
   return useQuery({
     queryKey: ['restock-recommendations', productId],
     queryFn: async () => {
-      let query = supabase
-        .from('restock_recommendations')
-        .select('*');
-      
-      if (productId) {
-        query = query.eq('product_id', productId);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching restock recommendations:', error);
+      try {
+        let query = supabase
+          .from('restock_recommendations')
+          .select('*');
         
-        // Fallback to mock data if no data in database
-        if (error.code === 'PGRST116' || (data && data.length === 0)) {
-          if (productId) {
-            return mockRecommendations[productId] || [];
-          } else {
-            return Object.values(mockRecommendations).flat();
-          }
+        if (productId) {
+          query = query.eq('product_id', productId);
         }
         
-        throw error;
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching restock recommendations:', error);
+          
+          // Fallback to mock data if no data in database
+          if (error.code === 'PGRST116' || (data && data.length === 0)) {
+            if (productId) {
+              return mockRecommendations[productId] || [];
+            } else {
+              return Object.values(mockRecommendations).flat();
+            }
+          }
+          
+          throw error;
+        }
+        
+        return data as RestockRecommendation[];
+      } catch (error) {
+        console.error('Error in useRestockRecommendations:', error);
+        if (productId) {
+          return mockRecommendations[productId] || [];
+        } else {
+          return Object.values(mockRecommendations).flat();
+        }
       }
-      
-      return data as RestockRecommendation[];
     },
   });
 };
@@ -110,22 +124,26 @@ export const useUpdateRestockRecommendation = () => {
       id: string; 
       status: 'pending' | 'approved' | 'rejected'; 
     }) => {
-      const { data, error } = await supabase
-        .from('restock_recommendations')
-        .update({
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('restock_recommendations')
+          .update({
+            status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select();
+          
+        if (error) {
+          console.error('Error updating restock recommendation:', error);
+          throw error;
+        }
         
-      if (error) {
-        console.error('Error updating restock recommendation:', error);
+        return data[0] as RestockRecommendation;
+      } catch (error) {
+        console.error('Error in useUpdateRestockRecommendation:', error);
         throw error;
       }
-      
-      return data;
     },
     onSuccess: () => {
       // Invalidate and refetch restock recommendations queries

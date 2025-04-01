@@ -29,25 +29,30 @@ export const useFraudScore = (transactionId: string) => {
   return useQuery({
     queryKey: ['fraud-score', transactionId],
     queryFn: async () => {
-      // First try to fetch from Supabase
-      const { data, error } = await supabase
-        .from('fraud_scores')
-        .select('*')
-        .eq('transaction_id', transactionId)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching fraud score:', error);
+      try {
+        // First try to fetch from Supabase
+        const { data, error } = await supabase
+          .from('fraud_scores')
+          .select('*')
+          .eq('transaction_id', transactionId)
+          .single();
         
-        // Fallback to mock data if no data in database
-        if (error.code === 'PGRST116') { // No rows returned
-          return mockFraudScores[transactionId] || null;
+        if (error) {
+          console.error('Error fetching fraud score:', error);
+          
+          // Fallback to mock data if no data in database
+          if (error.code === 'PGRST116') { // No rows returned
+            return mockFraudScores[transactionId] || null;
+          }
+          
+          throw error;
         }
         
-        throw error;
+        return data as FraudScore;
+      } catch (error) {
+        console.error('Error in useFraudScore:', error);
+        return mockFraudScores[transactionId] || null;
       }
-      
-      return data as FraudScore;
     },
     enabled: !!transactionId,
   });
@@ -61,36 +66,45 @@ export const useFraudCases = (
   return useQuery({
     queryKey: ['fraud-cases', status, limit],
     queryFn: async () => {
-      let query = supabase
-        .from('fraud_cases')
-        .select('*');
-      
-      // Filter cases by status if provided
-      if (status) {
-        query = query.eq('status', status);
-      }
-      
-      // Limit the number of results
-      query = query.limit(limit);
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching fraud cases:', error);
+      try {
+        let query = supabase
+          .from('fraud_cases')
+          .select('*');
         
-        // Fallback to mock data if no data in database
-        if (error.code === 'PGRST116' || (data && data.length === 0)) {
-          let filteredCases = [...mockFraudCases];
-          if (status) {
-            filteredCases = filteredCases.filter(c => c.status === status);
-          }
-          return filteredCases.slice(0, limit);
+        // Filter cases by status if provided
+        if (status) {
+          query = query.eq('status', status);
         }
         
-        throw error;
+        // Limit the number of results
+        query = query.limit(limit);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching fraud cases:', error);
+          
+          // Fallback to mock data if no data in database
+          if (error.code === 'PGRST116' || (data && data.length === 0)) {
+            let filteredCases = [...mockFraudCases];
+            if (status) {
+              filteredCases = filteredCases.filter(c => c.status === status);
+            }
+            return filteredCases.slice(0, limit);
+          }
+          
+          throw error;
+        }
+        
+        return data as FraudCase[];
+      } catch (error) {
+        console.error('Error in useFraudCases:', error);
+        let filteredCases = [...mockFraudCases];
+        if (status) {
+          filteredCases = filteredCases.filter(c => c.status === status);
+        }
+        return filteredCases.slice(0, limit);
       }
-      
-      return data as FraudCase[];
     },
   });
 };
@@ -111,24 +125,28 @@ export const useUpdateFraudCase = () => {
       notes?: string;
       resolution?: string;
     }) => {
-      const { data, error } = await supabase
-        .from('fraud_cases')
-        .update({
-          status,
-          notes: notes || null,
-          resolution: resolution || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', caseId)
-        .select()
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('fraud_cases')
+          .update({
+            status,
+            notes: notes || null,
+            resolution: resolution || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', caseId)
+          .select();
+          
+        if (error) {
+          console.error('Error updating fraud case:', error);
+          throw error;
+        }
         
-      if (error) {
-        console.error('Error updating fraud case:', error);
+        return data[0] as FraudCase;
+      } catch (error) {
+        console.error('Error in useUpdateFraudCase:', error);
         throw error;
       }
-      
-      return data;
     },
     onSuccess: () => {
       // Invalidate and refetch fraud cases queries
