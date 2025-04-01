@@ -19,6 +19,12 @@ export interface FraudCase {
   resolution: string | null;
   created_at: string;
   updated_at: string;
+  // Add missing properties that are referenced in the code
+  customer_name?: string;
+  order_id?: string;
+  amount?: number;
+  payment_method?: string;
+  flags?: string[];
 }
 
 // Mock data for development until records are added to the actual tables
@@ -63,7 +69,13 @@ export const mockFraudCases: FraudCase[] = [
     notes: null,
     resolution: null,
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    // Add missing properties used in the admin/fraud.tsx
+    customer_name: "John Doe",
+    order_id: "ORD-1001",
+    amount: 299.99,
+    payment_method: "Credit Card",
+    flags: ["unusual_location", "payment_method_mismatch"]
   },
   {
     id: "fc-2",
@@ -74,6 +86,12 @@ export const mockFraudCases: FraudCase[] = [
     notes: "Verified with customer. Legitimate purchase.",
     resolution: "Customer confirmed purchase via phone.",
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    // Add missing properties used in the admin/fraud.tsx
+    customer_name: "Jane Smith",
+    order_id: "ORD-1002",
+    amount: 149.50,
+    payment_method: "PayPal",
+    flags: ["recent_account_creation"]
   }
 ];

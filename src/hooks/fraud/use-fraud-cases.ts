@@ -46,7 +46,16 @@ export const useFraudCases = (
           return filteredCases.slice(0, limit);
         }
         
-        return data as FraudCase[];
+        // Make sure we're returning data with all the properties expected by the UI
+        return data.map(item => ({
+          ...item,
+          // Add any missing properties that might be used in the UI
+          customer_name: item.customer_name || 'Unknown Customer',
+          order_id: item.order_id || `ORD-${item.transaction_id.substr(3)}`,
+          amount: item.amount || 0,
+          payment_method: item.payment_method || 'Unknown',
+          flags: item.flags || []
+        })) as FraudCase[];
       } catch (error) {
         console.error('Error in useFraudCases:', error);
         let filteredCases = [...mockFraudCases];
