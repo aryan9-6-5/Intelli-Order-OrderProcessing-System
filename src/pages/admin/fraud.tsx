@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
-import { Search, Filter, AlertTriangle, ArrowUpDown, ShieldAlert, Check, X, Eye } from "lucide-react";
+import { Search, Filter, AlertTriangle, ArrowUpDown, ShieldAlert, Check, X, Eye, Download } from "lucide-react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,107 +35,51 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Import AI components
 import FraudScoreBadge from "@/components/fraud/fraud-score-badge";
 import FraudFeaturesDisplay from "@/components/fraud/fraud-features-display";
-
-// Mock data
-const mockSuspiciousTransactions = [
-  {
-    id: "TRX-8976",
-    orderId: "ORD-3488",
-    customer: "Sarah Wilson",
-    date: "2023-10-14",
-    amount: 899.99,
-    status: "pending-review",
-    riskLevel: "high",
-    flags: ["unusual_location", "large_amount", "new_device"],
-    paymentMethod: "Credit Card (ending in 3421)",
-  },
-  {
-    id: "TRX-8965",
-    orderId: "ORD-3484",
-    customer: "Lisa Martinez",
-    date: "2023-10-12",
-    amount: 499.99,
-    status: "pending-review",
-    riskLevel: "medium",
-    flags: ["multiple_attempts", "address_mismatch"],
-    paymentMethod: "PayPal",
-  },
-  {
-    id: "TRX-8934",
-    orderId: "ORD-3452",
-    customer: "Brandon Taylor",
-    date: "2023-10-09",
-    amount: 1299.99,
-    status: "marked-safe",
-    riskLevel: "low",
-    flags: ["unusual_time", "high_value"],
-    paymentMethod: "Credit Card (ending in 7890)",
-  },
-  {
-    id: "TRX-8912",
-    orderId: "ORD-3434",
-    customer: "Alex Rodriguez",
-    date: "2023-10-07",
-    amount: 899.99,
-    status: "confirmed-fraud",
-    riskLevel: "critical",
-    flags: ["stolen_card", "vpn_detected", "multiple_locations"],
-    paymentMethod: "Credit Card (ending in 1234)",
-  },
-  {
-    id: "TRX-8899",
-    orderId: "ORD-3421",
-    customer: "Jordan Lee",
-    date: "2023-10-05",
-    amount: 749.99,
-    status: "pending-review",
-    riskLevel: "high",
-    flags: ["unusual_behavior", "expedited_shipping", "different_name"],
-    paymentMethod: "Credit Card (ending in 5678)",
-  },
-  {
-    id: "TRX-8877",
-    orderId: "ORD-3409",
-    customer: "Morgan Williams",
-    date: "2023-10-03",
-    amount: 299.99,
-    status: "marked-safe",
-    riskLevel: "medium",
-    flags: ["first_purchase", "international"],
-    paymentMethod: "Credit Card (ending in 9012)",
-  },
-];
+import { useFraudCases } from "@/hooks/fraud/use-fraud-cases";
+import { useUpdateFraudCase } from "@/hooks/fraud/use-update-fraud-case";
+import { exportToCSV } from "@/utils/export-utils";
 
 type FraudStatus = "pending-review" | "marked-safe" | "confirmed-fraud" | "all";
 
 const AdminFraudPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<FraudStatus>("all");
+  const [filterDays, setFilterDays] = useState<number | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { toast } = useToast();
+
+  const { data: fraudCases = [], isLoading, error } = useFraudCases(
+    activeTab === "all" ? undefined : activeTab,
+    100
+  );
   
-  const filteredTransactions = mockSuspiciousTransactions.filter(transaction => {
+  const updateFraudCase = useUpdateFraudCase();
+  
+  const filteredTransactions = fraudCases.filter(transaction => {
     const matchesSearch = 
-      transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.orderId.toLowerCase().includes(searchTerm.toLowerCase());
+      transaction.transaction_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (transaction.customer_name && transaction.customer_name.toLowerCase().includes(searchTerm.toLowerCase()));
       
-    const matchesTab = activeTab === "all" || transaction.status === activeTab;
+    let matchesDateFilter = true;
+    if (filterDays) {
+      const createdAt = new Date(transaction.created_at);
+      const daysAgo = (new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+      matchesDateFilter = daysAgo <= filterDays;
+    }
     
-    return matchesSearch && matchesTab;
+    return matchesSearch && matchesDateFilter;
   });
   
   const handleStatusUpdate = (transactionId: string, newStatus: FraudStatus) => {
     if (newStatus === "all") return;
     
-    // In a real app, this would call an API to update the status
-    toast({
-      title: "Status updated",
-      description: `Transaction ${transactionId} marked as ${newStatus.replace('-', ' ')}`,
+    updateFraudCase.mutate({ 
+      caseId: transactionId, 
+      status: newStatus,
+      notes: `Status updated to ${newStatus} on ${new Date().toISOString()}`
     });
   };
   
@@ -144,63 +88,23 @@ const AdminFraudPage = () => {
     setDetailsOpen(true);
   };
   
-  const getRiskBadge = (riskLevel: string) => {
-    switch (riskLevel) {
-      case "critical":
-        return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
-            Critical
-          </Badge>
-        );
-      case "high":
-        return (
-          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200">
-            High
-          </Badge>
-        );
-      case "medium":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-            Medium
-          </Badge>
-        );
-      case "low":
-        return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-            Low
-          </Badge>
-        );
-      default:
-        return <Badge>{riskLevel}</Badge>;
-    }
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending-review":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" />
-            Pending Review
-          </Badge>
-        );
-      case "marked-safe":
-        return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
-            <Check className="h-3 w-3" />
-            Marked Safe
-          </Badge>
-        );
-      case "confirmed-fraud":
-        return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-200 flex items-center gap-1">
-            <ShieldAlert className="h-3 w-3" />
-            Confirmed Fraud
-          </Badge>
-        );
-      default:
-        return <Badge>{status}</Badge>;
-    }
+  const handleExport = () => {
+    exportToCSV(
+      filteredTransactions.map(t => ({
+        transaction_id: t.transaction_id,
+        status: t.status,
+        risk_score: t.risk_score,
+        created_at: new Date(t.created_at).toLocaleString(),
+        updated_at: new Date(t.updated_at).toLocaleString(),
+        notes: t.notes || ""
+      })),
+      `fraud-cases-${activeTab}-${new Date().toISOString().split('T')[0]}`
+    );
+    
+    toast({
+      title: "Export successful",
+      description: `Exported ${filteredTransactions.length} fraud cases.`,
+    });
   };
 
   return (
@@ -241,16 +145,21 @@ const AdminFraudPage = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-background">
-                  <DropdownMenuItem>Last 7 days</DropdownMenuItem>
-                  <DropdownMenuItem>Last 30 days</DropdownMenuItem>
-                  <DropdownMenuItem>High risk only</DropdownMenuItem>
-                  <DropdownMenuItem>Critical risk only</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFilterDays(7)}>Last 7 days</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFilterDays(30)}>Last 30 days</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFilterDays(90)}>Last 90 days</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFilterDays(null)}>All time</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <ArrowUpDown className="h-4 w-4" />
-                Sort
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={handleExport}
+              >
+                <Download className="h-4 w-4" />
+                Export
               </Button>
             </div>
           </div>
@@ -268,87 +177,110 @@ const AdminFraudPage = () => {
             </TabsList>
             
             <TabsContent value={activeTab} className="mt-6">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Risk Level</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTransactions.length > 0 ? (
-                      filteredTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-medium">{transaction.id}</TableCell>
-                          <TableCell>{transaction.customer}</TableCell>
-                          <TableCell>{transaction.orderId}</TableCell>
-                          <TableCell>
-                            {/* Replace with AI-powered FraudScoreBadge */}
-                            <FraudScoreBadge transactionId={transaction.id} />
-                          </TableCell>
-                          <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                          <TableCell>${transaction.amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => viewDetails(transaction)}
-                              >
-                                <Eye className="h-4 w-4" />
-                                <span className="sr-only">View details</span>
-                              </Button>
-                              
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <span className="sr-only">Actions</span>
-                                    <AlertTriangle className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-background">
-                                  <DropdownMenuItem 
-                                    onClick={() => handleStatusUpdate(transaction.id, "marked-safe")}
-                                    className="text-green-600 focus:text-green-600"
-                                  >
-                                    <Check className="mr-2 h-4 w-4" />
-                                    Mark as Safe
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => handleStatusUpdate(transaction.id, "confirmed-fraud")}
-                                    className="text-red-600 focus:text-red-600"
-                                  >
-                                    <X className="mr-2 h-4 w-4" />
-                                    Confirm as Fraud
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
+              {isLoading ? (
+                <div className="h-24 flex items-center justify-center">
+                  <div className="h-8 w-8 border-4 border-t-transparent border-primary rounded-full animate-spin"></div>
+                </div>
+              ) : error ? (
+                <div className="h-24 flex items-center justify-center text-destructive">
+                  Error loading fraud cases
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Transaction ID</TableHead>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Risk Level</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTransactions.length > 0 ? (
+                        filteredTransactions.map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell className="font-medium">{transaction.transaction_id}</TableCell>
+                            <TableCell>{transaction.order_id || "N/A"}</TableCell>
+                            <TableCell>
+                              <FraudScoreBadge transactionId={transaction.transaction_id} score={transaction.risk_score} />
+                            </TableCell>
+                            <TableCell>
+                              {transaction.status === "pending-review" ? (
+                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Pending Review
+                                </Badge>
+                              ) : transaction.status === "marked-safe" ? (
+                                <Badge className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
+                                  <Check className="h-3 w-3" />
+                                  Marked Safe
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-red-100 text-red-800 hover:bg-red-200 flex items-center gap-1">
+                                  <ShieldAlert className="h-3 w-3" />
+                                  Confirmed Fraud
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>{new Date(transaction.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => viewDetails(transaction)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span className="sr-only">View details</span>
+                                </Button>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <span className="sr-only">Actions</span>
+                                      <AlertTriangle className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-background">
+                                    <DropdownMenuItem 
+                                      onClick={() => handleStatusUpdate(transaction.id, "marked-safe")}
+                                      className="text-green-600 focus:text-green-600"
+                                    >
+                                      <Check className="mr-2 h-4 w-4" />
+                                      Mark as Safe
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleStatusUpdate(transaction.id, "confirmed-fraud")}
+                                      className="text-red-600 focus:text-red-600"
+                                    >
+                                      <X className="mr-2 h-4 w-4" />
+                                      Confirm as Fraud
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center">
+                            No transactions found.
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                          No transactions found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
       </DashboardLayout>
       
-      {/* Transaction Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -363,19 +295,19 @@ const AdminFraudPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Transaction ID</h4>
-                  <p className="font-medium">{selectedTransaction.id}</p>
+                  <p className="font-medium">{selectedTransaction.transaction_id}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Order ID</h4>
-                  <p className="font-medium">{selectedTransaction.orderId}</p>
+                  <p className="font-medium">{selectedTransaction.order_id || "N/A"}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Customer</h4>
-                  <p className="font-medium">{selectedTransaction.customer}</p>
+                  <p className="font-medium">{selectedTransaction.customer_name}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Date</h4>
-                  <p className="font-medium">{new Date(selectedTransaction.date).toLocaleDateString()}</p>
+                  <p className="font-medium">{new Date(selectedTransaction.created_at).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Amount</h4>
@@ -383,20 +315,18 @@ const AdminFraudPage = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Payment Method</h4>
-                  <p className="font-medium">{selectedTransaction.paymentMethod}</p>
+                  <p className="font-medium">{selectedTransaction.payment_method}</p>
                 </div>
               </div>
               
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Risk Level</h4>
                 <div>
-                  {/* Replace with AI-powered FraudScoreBadge */}
-                  <FraudScoreBadge transactionId={selectedTransaction.id} showScore={true} />
+                  <FraudScoreBadge transactionId={selectedTransaction.transaction_id} showScore={true} />
                 </div>
               </div>
               
-              {/* Add AI-powered risk factors display */}
-              <FraudFeaturesDisplay transactionId={selectedTransaction.id} />
+              <FraudFeaturesDisplay transactionId={selectedTransaction.transaction_id} />
               
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Detected Flags</h4>
@@ -425,7 +355,7 @@ const AdminFraudPage = () => {
                     variant="outline"
                     className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
                     onClick={() => {
-                      handleStatusUpdate(selectedTransaction.id, "marked-safe");
+                      handleStatusUpdate(selectedTransaction.transaction_id, "marked-safe");
                       setDetailsOpen(false);
                     }}
                   >
@@ -436,7 +366,7 @@ const AdminFraudPage = () => {
                     variant="outline"
                     className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
                     onClick={() => {
-                      handleStatusUpdate(selectedTransaction.id, "confirmed-fraud");
+                      handleStatusUpdate(selectedTransaction.transaction_id, "confirmed-fraud");
                       setDetailsOpen(false);
                     }}
                   >

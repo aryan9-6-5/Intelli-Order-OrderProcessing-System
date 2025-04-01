@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Helmet } from "react-helmet";
 import { Truck, PackageOpen, Box, BarChart, AlertTriangle } from "lucide-react";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { processOrder, shipOrder, submitRestockRequest, processAllOrders } from "@/utils/warehouse-utils";
 
 const WarehouseDashboard = () => {
   const navigate = useNavigate();
@@ -22,19 +22,13 @@ const WarehouseDashboard = () => {
   const handleAction = (action: string, id: number) => {
     switch (action) {
       case 'ship':
-        toast.success(`Order #98${id}54 marked for shipping`, {
-          description: "Order has been added to the shipping queue."
-        });
+        shipOrder(`#98${id}54`);
         break;
       case 'process':
-        toast.success(`Order #98${id}54 is being processed`, {
-          description: "Order has been moved to processing."
-        });
+        processOrder(`#98${id}54`);
         break;
       case 'restock':
-        toast.success(`Restock request submitted`, {
-          description: "Restock request has been sent to the supplier."
-        });
+        submitRestockRequest(`PROD-${id}`, 50);
         break;
       default:
         break;
@@ -65,11 +59,7 @@ const WarehouseDashboard = () => {
                 <Badge variant="outline" className="bg-accent/10 text-accent">
                   24 Orders Today
                 </Badge>
-                <Button size="sm" onClick={() => {
-                  toast.success("Processing all orders", {
-                    description: "All pending orders have been queued for processing."
-                  });
-                }}>
+                <Button size="sm" onClick={() => processAllOrders()}>
                   Process All
                 </Button>
               </div>

@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FraudCase } from "./types";
+import { toast } from "sonner";
 
 // Update a fraud case status
 export const useUpdateFraudCase = () => {
@@ -33,10 +34,17 @@ export const useUpdateFraudCase = () => {
           
         if (error) {
           console.error('Error updating fraud case:', error);
+          toast(`Error: ${error.message}`, {
+            description: "Failed to update fraud case status."
+          });
           throw error;
         }
+
+        toast(`Fraud case status updated to ${status.replace('-', ' ')}`, {
+          description: "The fraud case has been successfully updated."
+        });
         
-        return data[0] as unknown as FraudCase;
+        return data[0] as FraudCase;
       } catch (error) {
         console.error('Error in useUpdateFraudCase:', error);
         throw error;

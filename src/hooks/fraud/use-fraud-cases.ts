@@ -29,19 +29,24 @@ export const useFraudCases = (
         if (error) {
           console.error('Error fetching fraud cases:', error);
           
-          // Fallback to mock data if no data in database
-          if (error.code === 'PGRST116' || (data && data.length === 0)) {
-            let filteredCases = [...mockFraudCases];
-            if (status) {
-              filteredCases = filteredCases.filter(c => c.status === status);
-            }
-            return filteredCases.slice(0, limit);
+          // Fallback to mock data if database error occurs
+          let filteredCases = [...mockFraudCases];
+          if (status) {
+            filteredCases = filteredCases.filter(c => c.status === status);
           }
-          
-          throw error;
+          return filteredCases.slice(0, limit);
         }
         
-        return data as unknown as FraudCase[];
+        if (!data || data.length === 0) {
+          console.log('No fraud cases found in database, using mock data');
+          let filteredCases = [...mockFraudCases];
+          if (status) {
+            filteredCases = filteredCases.filter(c => c.status === status);
+          }
+          return filteredCases.slice(0, limit);
+        }
+        
+        return data as FraudCase[];
       } catch (error) {
         console.error('Error in useFraudCases:', error);
         let filteredCases = [...mockFraudCases];
