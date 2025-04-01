@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { useFraudScore } from "@/hooks/use-fraud-detection";
+import { useFraudScore } from "@/hooks/fraud";
 
 interface FraudFeaturesDisplayProps {
   transactionId: string;

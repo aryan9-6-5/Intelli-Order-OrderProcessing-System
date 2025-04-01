@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFraudScore } from "@/hooks/use-fraud-detection";
+import { useFraudScore } from "@/hooks/fraud";
 import { AlertTriangle, ShieldCheck, ShieldAlert } from "lucide-react";
 
 interface FraudScoreBadgeProps {

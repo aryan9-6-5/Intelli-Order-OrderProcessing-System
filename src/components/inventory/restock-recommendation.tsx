@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle, AlertTriangle, Cpu } from "lucide-react";
-import { useRestockRecommendations } from "@/hooks/use-inventory-prediction";
+import { useRestockRecommendations } from "@/hooks/inventory";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
