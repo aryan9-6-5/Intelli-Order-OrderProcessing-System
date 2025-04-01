@@ -9,6 +9,90 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      fraud_cases: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          resolution: string | null
+          risk_score: number
+          status: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          resolution?: string | null
+          risk_score: number
+          status: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          resolution?: string | null
+          risk_score?: number
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fraud_scores: {
+        Row: {
+          created_at: string
+          features: Json
+          id: string
+          model_version: string
+          risk_score: number
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string
+          features: Json
+          id?: string
+          model_version: string
+          risk_score: number
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          id?: string
+          model_version?: string
+          risk_score?: number
+          transaction_id?: string
+        }
+        Relationships: []
+      }
+      product_forecasts: {
+        Row: {
+          forecast_data: Json
+          id: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          forecast_data: Json
+          id?: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          forecast_data?: Json
+          id?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -26,6 +110,42 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      restock_recommendations: {
+        Row: {
+          confidence_score: number
+          created_at: string
+          id: string
+          product_id: string
+          reasoning: string
+          recommended_quantity: number
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score: number
+          created_at?: string
+          id?: string
+          product_id: string
+          reasoning: string
+          recommended_quantity: number
+          source: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number
+          created_at?: string
+          id?: string
+          product_id?: string
+          reasoning?: string
+          recommended_quantity?: number
+          source?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []

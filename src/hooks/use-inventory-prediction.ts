@@ -1,5 +1,6 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // Types for inventory predictions
 export interface ProductForecast {
@@ -33,7 +34,138 @@ export interface RestockRecommendation {
   updated_at: string;
 }
 
-// Mock data for development until the actual tables are created
+// Fetches demand forecast for a specific product
+export const useProductForecast = (productId: string, days: number = 30) => {
+  return useQuery({
+    queryKey: ['product-forecast', productId, days],
+    queryFn: async () => {
+      // First try to fetch from Supabase
+      const { data, error } = await supabase
+        .from('product_forecasts')
+        .select('*')
+        .eq('product_id', productId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching product forecast:', error);
+        
+        // Fallback to mock data if no data in database
+        if (error.code === 'PGRST116') { // No rows returned
+          return mockForecasts[productId] || null;
+        }
+        
+        throw error;
+      }
+      
+      return data as ProductForecast;
+    },
+    enabled: !!productId,
+  });
+};
+
+// Fetches restock recommendations from the MARL model
+export const useRestockRecommendations = (productId?: string) => {
+  return useQuery({
+    queryKey: ['restock-recommendations', productId],
+    queryFn: async () => {
+      let query = supabase
+        .from('restock_recommendations')
+        .select('*');
+      
+      if (productId) {
+        query = query.eq('product_id', productId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching restock recommendations:', error);
+        
+        // Fallback to mock data if no data in database
+        if (error.code === 'PGRST116' || (data && data.length === 0)) {
+          if (productId) {
+            return mockRecommendations[productId] || [];
+          } else {
+            return Object.values(mockRecommendations).flat();
+          }
+        }
+        
+        throw error;
+      }
+      
+      return data as RestockRecommendation[];
+    },
+  });
+};
+
+// Update restock recommendation status
+export const useUpdateRestockRecommendation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      id, 
+      status 
+    }: { 
+      id: string; 
+      status: 'pending' | 'approved' | 'rejected'; 
+    }) => {
+      const { data, error } = await supabase
+        .from('restock_recommendations')
+        .update({
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error updating restock recommendation:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch restock recommendations queries
+      queryClient.invalidateQueries({ queryKey: ['restock-recommendations'] });
+    },
+  });
+};
+
+// Fetches agent decision explanations
+export const useAgentDecisionExplanation = (productId: string) => {
+  return useQuery({
+    queryKey: ['agent-explanation', productId],
+    queryFn: async () => {
+      try {
+        // In a real implementation, this would fetch from a database
+        // or from an API endpoint that returns agent explanations
+        
+        // Mock explanation data
+        return {
+          product_id: productId,
+          explanation: [
+            "Agent evaluated 5 potential actions based on current state.",
+            "Key factors: current inventory (32 units), lead time (5 days), demand forecast (420 units over 14 days).",
+            "Agent chose 'restock 250 units' with expected reward of 0.85.",
+            "Alternative actions considered: wait 1 day (-0.2 reward), order 100 units (0.4 reward), order 500 units (0.65 reward)."
+          ],
+          confidence: 0.85,
+          training_iterations: 250000,
+          model_version: "marl-v2.3"
+        };
+      } catch (error) {
+        console.error('Error fetching agent decision explanation:', error);
+        throw error;
+      }
+    },
+    enabled: !!productId,
+  });
+};
+
+// Mock data for development until the actual tables are populated
 const mockForecasts: Record<string, ProductForecast> = {
   "PRD-1001": {
     id: "pf-1",
@@ -110,64 +242,4 @@ const mockRecommendations: Record<string, RestockRecommendation[]> = {
       updated_at: new Date().toISOString()
     }
   ]
-};
-
-// Fetches demand forecast for a specific product
-export const useProductForecast = (productId: string, days: number = 30) => {
-  return useQuery({
-    queryKey: ['product-forecast', productId, days],
-    queryFn: async () => {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Return mock data for the specified product ID
-      return mockForecasts[productId] || null;
-    },
-    enabled: !!productId,
-  });
-};
-
-// Fetches restock recommendations from the MARL model
-export const useRestockRecommendations = (productId?: string) => {
-  return useQuery({
-    queryKey: ['restock-recommendations', productId],
-    queryFn: async () => {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (productId) {
-        // Return recommendations for specific product
-        return mockRecommendations[productId] || [];
-      } else {
-        // Return all recommendations
-        return Object.values(mockRecommendations).flat();
-      }
-    },
-  });
-};
-
-// Fetches agent decision explanations
-export const useAgentDecisionExplanation = (productId: string) => {
-  return useQuery({
-    queryKey: ['agent-explanation', productId],
-    queryFn: async () => {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock explanation data
-      return {
-        product_id: productId,
-        explanation: [
-          "Agent evaluated 5 potential actions based on current state.",
-          "Key factors: current inventory (32 units), lead time (5 days), demand forecast (420 units over 14 days).",
-          "Agent chose 'restock 250 units' with expected reward of 0.85.",
-          "Alternative actions considered: wait 1 day (-0.2 reward), order 100 units (0.4 reward), order 500 units (0.65 reward)."
-        ],
-        confidence: 0.85,
-        training_iterations: 250000,
-        model_version: "marl-v2.3"
-      };
-    },
-    enabled: !!productId,
-  });
 };

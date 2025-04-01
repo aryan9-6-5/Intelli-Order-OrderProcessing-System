@@ -1,5 +1,6 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // Types for fraud detection
 export interface FraudScore {
@@ -23,7 +24,154 @@ export interface FraudCase {
   updated_at: string;
 }
 
-// Mock data for development until the actual tables are created
+// Fetches the fraud score for a specific transaction
+export const useFraudScore = (transactionId: string) => {
+  return useQuery({
+    queryKey: ['fraud-score', transactionId],
+    queryFn: async () => {
+      // First try to fetch from Supabase
+      const { data, error } = await supabase
+        .from('fraud_scores')
+        .select('*')
+        .eq('transaction_id', transactionId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching fraud score:', error);
+        
+        // Fallback to mock data if no data in database
+        if (error.code === 'PGRST116') { // No rows returned
+          return mockFraudScores[transactionId] || null;
+        }
+        
+        throw error;
+      }
+      
+      return data as FraudScore;
+    },
+    enabled: !!transactionId,
+  });
+};
+
+// Fetches fraud cases with optional filtering
+export const useFraudCases = (
+  status?: 'pending-review' | 'marked-safe' | 'confirmed-fraud',
+  limit: number = 10
+) => {
+  return useQuery({
+    queryKey: ['fraud-cases', status, limit],
+    queryFn: async () => {
+      let query = supabase
+        .from('fraud_cases')
+        .select('*');
+      
+      // Filter cases by status if provided
+      if (status) {
+        query = query.eq('status', status);
+      }
+      
+      // Limit the number of results
+      query = query.limit(limit);
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching fraud cases:', error);
+        
+        // Fallback to mock data if no data in database
+        if (error.code === 'PGRST116' || (data && data.length === 0)) {
+          let filteredCases = [...mockFraudCases];
+          if (status) {
+            filteredCases = filteredCases.filter(c => c.status === status);
+          }
+          return filteredCases.slice(0, limit);
+        }
+        
+        throw error;
+      }
+      
+      return data as FraudCase[];
+    },
+  });
+};
+
+// Update a fraud case status
+export const useUpdateFraudCase = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      caseId, 
+      status, 
+      notes, 
+      resolution 
+    }: { 
+      caseId: string; 
+      status: 'pending-review' | 'marked-safe' | 'confirmed-fraud'; 
+      notes?: string;
+      resolution?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('fraud_cases')
+        .update({
+          status,
+          notes: notes || null,
+          resolution: resolution || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', caseId)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error updating fraud case:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch fraud cases queries
+      queryClient.invalidateQueries({ queryKey: ['fraud-cases'] });
+    },
+  });
+};
+
+// Fetches graph visualization data for fraud network
+export const useFraudNetworkGraph = (transactionId: string) => {
+  return useQuery({
+    queryKey: ['fraud-network', transactionId],
+    queryFn: async () => {
+      try {
+        // In a real implementation, this would fetch from a graph database
+        // or construct the graph from related entities in the database
+        
+        // For now, return mock graph data
+        return {
+          nodes: [
+            { id: "user-1", label: "User", type: "user" },
+            { id: transactionId, label: "Transaction", type: "transaction" },
+            { id: "device-1", label: "Device", type: "device" },
+            { id: "ip-1", label: "IP Address", type: "ip" },
+            { id: "product-1", label: "Product", type: "product" }
+          ],
+          edges: [
+            { source: "user-1", target: transactionId, type: "made" },
+            { source: "device-1", target: transactionId, type: "used-for" },
+            { source: "device-1", target: "ip-1", type: "connected-to" },
+            { source: transactionId, target: "product-1", type: "purchased" }
+          ]
+        };
+      } catch (error) {
+        console.error('Error fetching fraud network graph:', error);
+        throw error;
+      }
+    },
+    enabled: !!transactionId,
+  });
+};
+
+// Mock data for development until records are added to the actual tables
 const mockFraudScores: Record<string, FraudScore> = {
   "TX-1001": {
     id: "fs-1",
@@ -79,70 +227,3 @@ const mockFraudCases: FraudCase[] = [
     updated_at: new Date().toISOString()
   }
 ];
-
-// Fetches the fraud score for a specific transaction
-export const useFraudScore = (transactionId: string) => {
-  return useQuery({
-    queryKey: ['fraud-score', transactionId],
-    queryFn: async () => {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Return mock data for the specified transaction ID
-      return mockFraudScores[transactionId] || null;
-    },
-    enabled: !!transactionId,
-  });
-};
-
-// Fetches fraud cases with optional filtering
-export const useFraudCases = (
-  status?: 'pending-review' | 'marked-safe' | 'confirmed-fraud',
-  limit: number = 10
-) => {
-  return useQuery({
-    queryKey: ['fraud-cases', status, limit],
-    queryFn: async () => {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filter cases by status if provided
-      let filteredCases = [...mockFraudCases];
-      if (status) {
-        filteredCases = filteredCases.filter(c => c.status === status);
-      }
-      
-      // Apply limit
-      return filteredCases.slice(0, limit);
-    },
-  });
-};
-
-// Fetches graph visualization data for fraud network
-export const useFraudNetworkGraph = (transactionId: string) => {
-  return useQuery({
-    queryKey: ['fraud-network', transactionId],
-    queryFn: async () => {
-      // Simulating API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock graph data
-      return {
-        nodes: [
-          { id: "user-1", label: "User", type: "user" },
-          { id: transactionId, label: "Transaction", type: "transaction" },
-          { id: "device-1", label: "Device", type: "device" },
-          { id: "ip-1", label: "IP Address", type: "ip" },
-          { id: "product-1", label: "Product", type: "product" }
-        ],
-        edges: [
-          { source: "user-1", target: transactionId, type: "made" },
-          { source: "device-1", target: transactionId, type: "used-for" },
-          { source: "device-1", target: "ip-1", type: "connected-to" },
-          { source: transactionId, target: "product-1", type: "purchased" }
-        ]
-      };
-    },
-    enabled: !!transactionId,
-  });
-};
