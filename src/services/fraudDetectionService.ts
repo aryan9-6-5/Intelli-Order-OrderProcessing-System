@@ -26,7 +26,7 @@ export interface TransactionResponse {
 }
 
 // The base URL for the FastAPI backend
-const API_BASE_URL = process.env.FRAUD_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_FRAUD_API_URL || 'http://localhost:8000';
 
 /**
  * Submits a transaction to the fraud detection API for scoring
