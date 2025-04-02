@@ -1,6 +1,6 @@
 
 import { useEffect, useCallback, useState } from 'react';
-import { fraudWebSocketClient, FraudWebSocketClient } from '@/services/fraudDetectionService';
+import { fraudWebSocketClient } from '@/services/fraudDetectionService';
 import { toast } from 'sonner';
 
 /**
