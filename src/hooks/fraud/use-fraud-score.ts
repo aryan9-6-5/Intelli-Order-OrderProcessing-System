@@ -9,7 +9,7 @@ export const useFraudScore = (transactionId: string) => {
     queryKey: ['fraud-score', transactionId],
     queryFn: async () => {
       try {
-        // First try to fetch from Supabase
+        // Fetch from Supabase
         const { data, error } = await supabase
           .from('fraud_scores')
           .select('*')

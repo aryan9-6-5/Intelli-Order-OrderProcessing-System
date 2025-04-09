@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,15 +42,17 @@ const FraudFeaturesDisplay = ({ transactionId }: FraudFeaturesDisplayProps) => {
     );
   }
 
-  // Extract top features based on importance
-  // Note: This is a placeholder for the actual HGNN feature importance
-  const topFeatures = [
-    { name: "Unusual Location", value: 0.75 },
-    { name: "Payment Method Mismatch", value: 0.65 },
-    { name: "High Order Value", value: 0.48 },
-    { name: "Recent Account Creation", value: 0.42 },
-    { name: "Multiple Shipping Addresses", value: 0.31 },
-  ];
+  // Extract features from the fraud score
+  const features = fraudScore.features;
+  
+  // Convert features object to array of {name, value} for display
+  const featureArray = Object.entries(features).map(([name, value]) => ({
+    name: name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+    value: typeof value === 'number' ? value : 0.5 // Default to 0.5 if not a number
+  }));
+  
+  // Sort by importance (value) descending
+  const topFeatures = featureArray.sort((a, b) => b.value - a.value).slice(0, 5);
 
   return (
     <Card>

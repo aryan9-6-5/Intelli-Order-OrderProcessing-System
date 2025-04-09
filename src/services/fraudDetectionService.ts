@@ -1,11 +1,12 @@
 
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * HGNN Fraud Detection Service
  * 
  * This service connects to the FastAPI backend that runs the HGNN (Heterogeneous Graph Neural Network)
- * model for fraud detection. It handles both REST API calls and WebSocket connections.
+ * model for fraud detection. It also handles database operations to store and retrieve fraud data.
  */
 
 export interface Transaction {
@@ -30,11 +31,14 @@ const API_BASE_URL = import.meta.env.VITE_FRAUD_API_URL || 'http://localhost:800
 
 /**
  * Submits a transaction to the fraud detection API for scoring
+ * and stores the result in the database
+ * 
  * @param transaction The transaction to score
  * @returns The transaction with its computed risk score
  */
 export const submitTransaction = async (transaction: Transaction): Promise<TransactionResponse> => {
   try {
+    // First, send to the AI model API
     const response = await fetch(`${API_BASE_URL}/transactions`, {
       method: 'POST',
       headers: {
@@ -48,7 +52,58 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
       throw new Error(errorData.detail || 'Error submitting transaction');
     }
 
-    return await response.json();
+    const result = await response.json();
+    
+    // Then, store in the database
+    const { error } = await supabase
+      .from('transactions')
+      .insert({
+        transaction_id: `TX-${result.transaction_id}`,
+        user_id: transaction.user_id,
+        device_id: transaction.device_id || null,
+        location_id: transaction.location_id || null,
+        amount: transaction.amount,
+        timestamp: new Date().toISOString(),
+        customer_name: 'Customer', // Default value
+        order_id: `ORD-${result.transaction_id}`,
+        payment_method: 'Credit Card', // Default value
+      });
+
+    if (error) {
+      console.error('Error storing transaction in database:', error);
+    }
+
+    // Store fraud score
+    const { error: scoreError } = await supabase
+      .from('fraud_scores')
+      .insert({
+        transaction_id: `TX-${result.transaction_id}`,
+        risk_score: result.risk_score,
+        features: {}, // Default empty features
+        model_version: 'hgnn-v1.0',
+      });
+
+    if (scoreError) {
+      console.error('Error storing fraud score in database:', scoreError);
+    }
+
+    // If risk score is high, create a fraud case
+    if (result.risk_score > 0.5) {
+      const { error: caseError } = await supabase
+        .from('fraud_cases')
+        .insert({
+          transaction_id: `TX-${result.transaction_id}`,
+          status: 'pending-review',
+          risk_score: result.risk_score,
+          notes: 'Automatically flagged for review due to high risk score',
+        });
+
+      if (caseError) {
+        console.error('Error creating fraud case in database:', caseError);
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error('Error in fraud detection service:', error);
     toast.error('Failed to analyze transaction for fraud');
@@ -57,23 +112,85 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
 };
 
 /**
- * Fetches recent transactions with their fraud scores
+ * Fetches recent transactions with their fraud scores from the database
  * @returns List of recent transactions with risk scores
  */
-export const fetchRecentTransactions = async (): Promise<TransactionResponse[]> => {
+export const fetchRecentTransactions = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/transactions`);
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(`
+        *,
+        fraud_scores(risk_score, features, created_at)
+      `)
+      .order('timestamp', { ascending: false })
+      .limit(10);
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Error fetching transactions');
+    if (error) {
+      throw error;
     }
 
-    return await response.json();
+    return data || [];
   } catch (error) {
     console.error('Error fetching transactions:', error);
     toast.error('Failed to load transaction history');
     throw error;
+  }
+};
+
+/**
+ * Fetches fraud cases statistics from the database
+ * @returns Statistics about fraud cases
+ */
+export const fetchFraudStatistics = async (): Promise<{
+  highRiskCount: number;
+  mediumRiskCount: number;
+  lowRiskCount: number;
+  clearedCount: number;
+  totalAmount: number;
+}> => {
+  try {
+    // Get counts for different risk levels
+    const { data: fraudCases, error: casesError } = await supabase
+      .from('fraud_cases')
+      .select('status, risk_score');
+    
+    if (casesError) {
+      throw casesError;
+    }
+
+    // Get total transaction amount
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('amount');
+    
+    if (txError) {
+      throw txError;
+    }
+
+    const highRiskCount = fraudCases?.filter(c => c.risk_score > 0.7).length || 0;
+    const mediumRiskCount = fraudCases?.filter(c => c.risk_score > 0.4 && c.risk_score <= 0.7).length || 0;
+    const lowRiskCount = fraudCases?.filter(c => c.risk_score <= 0.4).length || 0;
+    const clearedCount = fraudCases?.filter(c => c.status === 'marked-safe').length || 0;
+    
+    const totalAmount = transactions?.reduce((sum, tx) => sum + parseFloat(tx.amount), 0) || 0;
+
+    return {
+      highRiskCount,
+      mediumRiskCount,
+      lowRiskCount,
+      clearedCount,
+      totalAmount
+    };
+  } catch (error) {
+    console.error('Error fetching fraud statistics:', error);
+    return {
+      highRiskCount: 0,
+      mediumRiskCount: 0,
+      lowRiskCount: 0,
+      clearedCount: 0,
+      totalAmount: 0
+    };
   }
 };
 

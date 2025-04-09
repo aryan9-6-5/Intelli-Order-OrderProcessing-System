@@ -12,14 +12,21 @@ export const useFraudCases = (
     queryKey: ['fraud-cases', status, limit],
     queryFn: async () => {
       try {
+        // Join with transactions to get customer name, order ID, and amount
         let query = supabase
           .from('fraud_cases')
-          .select('*');
+          .select(`
+            *,
+            transactions!inner(customer_name, order_id, amount, payment_method)
+          `);
         
         // Filter cases by status if provided
         if (status) {
           query = query.eq('status', status);
         }
+        
+        // Order by risk score descending
+        query = query.order('risk_score', { ascending: false });
         
         // Limit the number of results
         query = query.limit(limit);
@@ -58,12 +65,12 @@ export const useFraudCases = (
             resolution: item.resolution,
             created_at: item.created_at,
             updated_at: item.updated_at,
-            // Add missing UI properties with default values
-            customer_name: 'Unknown Customer',
-            order_id: `ORD-${item.transaction_id.substring(3)}`,
-            amount: 0,
-            payment_method: 'Unknown',
-            flags: []
+            // Add UI properties from the joined transaction
+            customer_name: item.transactions.customer_name,
+            order_id: item.transactions.order_id,
+            amount: parseFloat(item.transactions.amount),
+            payment_method: item.transactions.payment_method,
+            flags: generateFlagsFromRiskScore(item.risk_score)
           } as FraudCase;
         });
       } catch (error) {
@@ -77,3 +84,26 @@ export const useFraudCases = (
     },
   });
 };
+
+// Helper function to generate flags based on risk score
+function generateFlagsFromRiskScore(riskScore: number): string[] {
+  const flags = [];
+  
+  if (riskScore > 0.7) {
+    flags.push("High-value order");
+  }
+  
+  if (riskScore > 0.8) {
+    flags.push("Mismatched billing/shipping");
+  }
+  
+  if (riskScore > 0.6) {
+    flags.push("Unusual time of purchase");
+  }
+  
+  if (riskScore > 0.5) {
+    flags.push("New account");
+  }
+  
+  return flags;
+}
