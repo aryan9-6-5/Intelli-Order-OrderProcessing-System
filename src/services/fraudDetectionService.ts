@@ -161,13 +161,13 @@ export const fetchRecentTransactions = async (): Promise<any[]> => {
     
     // Create a map of transactions by ID for easy lookup
     const txMap = (transactions || []).reduce((map, tx) => {
-      map[tx.transaction_id.toString()] = tx;
+      map[String(tx.transaction_id)] = tx;
       return map;
     }, {} as Record<string, any>);
     
     // Combine the data
     return scores.map(score => {
-      const txId = score.transaction_id.toString();
+      const txId = String(score.transaction_id);
       const tx = txMap[txId] || {};
       return {
         transaction_id: score.transaction_id,
@@ -226,15 +226,15 @@ export const fetchFraudStatistics = async (): Promise<{
     
     // Create a map of amounts
     const amountMap = (transactions || []).reduce((map, tx) => {
-      // Ensure transaction_id is treated as a string for lookup
-      map[tx.transaction_id.toString()] = parseFloat(tx.amount);
+      // Ensure transaction_id is always treated as a string for lookup
+      map[String(tx.transaction_id)] = parseFloat(tx.amount);
       return map;
     }, {} as Record<string, number>);
     
     // Calculate total amount
     const totalAmount = fraudCases?.reduce((sum, kase) => {
       // Ensure transaction_id is treated as a string for lookup
-      const txId = kase.transaction_id.toString();
+      const txId = String(kase.transaction_id);
       const amount = amountMap[txId] || 
         (kase.risk_score < 0.5 ? 
           100 + Math.round(kase.risk_score * 200) : 
