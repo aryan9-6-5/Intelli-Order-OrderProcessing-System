@@ -20,7 +20,13 @@ export const useFraudStatistics = () => {
         // Get counts for different risk levels from fraud_cases
         const { data: fraudCases, error: casesError } = await supabase
           .from('fraud_cases')
-          .select('status, risk_score');
+          .select(`
+            id,
+            status,
+            risk_score,
+            transaction_id,
+            transactions:transaction_id(amount)
+          `);
         
         if (casesError) {
           console.error('Error fetching fraud cases:', casesError);
@@ -33,14 +39,15 @@ export const useFraudStatistics = () => {
         const lowRiskCount = fraudCases?.filter(c => c.risk_score <= 0.4).length || 0;
         const clearedCount = fraudCases?.filter(c => c.status === 'marked-safe').length || 0;
         
-        // For total amount, we don't have direct access to transaction amounts
-        // We'll use a fixed representative value based on risk score instead
+        // Calculate total amount from transaction data
         const totalAmount = fraudCases?.reduce((sum, kase) => {
-          // Simulate transaction amount based on risk score
-          const estimatedAmount = kase.risk_score < 0.5 ? 
-            100 + Math.round(kase.risk_score * 200) : 
-            500 + Math.round(kase.risk_score * 1000);
-          return sum + estimatedAmount;
+          // Get the amount from the joined transactions data
+          const amount = kase.transactions?.amount 
+            ? parseFloat(kase.transactions.amount) 
+            : (kase.risk_score < 0.5 ? 
+                100 + Math.round(kase.risk_score * 200) : 
+                500 + Math.round(kase.risk_score * 1000));
+          return sum + amount;
         }, 0) || 5000; // Default fallback amount
 
         return {

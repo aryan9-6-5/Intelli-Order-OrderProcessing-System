@@ -51,8 +51,9 @@ export const useUpdateFraudCase = () => {
       }
     },
     onSuccess: () => {
-      // Invalidate and refetch fraud cases queries
+      // Invalidate and refetch fraud cases and statistics queries
       queryClient.invalidateQueries({ queryKey: ['fraud-cases'] });
+      queryClient.invalidateQueries({ queryKey: ['fraud-statistics'] });
     },
   });
 };

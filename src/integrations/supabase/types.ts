@@ -43,7 +43,15 @@ export type Database = {
           transaction_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fraud_cases_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["transaction_id"]
+          },
+        ]
       }
       fraud_scores: {
         Row: {
@@ -56,7 +64,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          features: Json
+          features?: Json
           id?: string
           model_version: string
           risk_score: number
@@ -70,7 +78,15 @@ export type Database = {
           risk_score?: number
           transaction_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fraud_scores_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["transaction_id"]
+          },
+        ]
       }
       product_forecasts: {
         Row: {
@@ -147,6 +163,45 @@ export type Database = {
           source?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          customer_name: string
+          device_id: string | null
+          id: string
+          location_id: string | null
+          order_id: string
+          payment_method: string
+          timestamp: string
+          transaction_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          customer_name: string
+          device_id?: string | null
+          id?: string
+          location_id?: string | null
+          order_id: string
+          payment_method: string
+          timestamp?: string
+          transaction_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          customer_name?: string
+          device_id?: string | null
+          id?: string
+          location_id?: string | null
+          order_id?: string
+          payment_method?: string
+          timestamp?: string
+          transaction_id?: string
+          user_id?: string
         }
         Relationships: []
       }

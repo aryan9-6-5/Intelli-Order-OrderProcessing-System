@@ -12,10 +12,18 @@ export const useFraudCases = (
     queryKey: ['fraud-cases', status, limit],
     queryFn: async () => {
       try {
-        // Query the fraud_cases table directly without joins
+        // Start with a query that joins fraud_cases with transactions to get all needed data
         let query = supabase
           .from('fraud_cases')
-          .select('*');
+          .select(`
+            *,
+            transactions:transaction_id(
+              customer_name,
+              order_id,
+              amount,
+              payment_method
+            )
+          `);
         
         // Filter cases by status if provided
         if (status) {
@@ -51,11 +59,8 @@ export const useFraudCases = (
         }
         
         // Map database results to FraudCase objects with all required properties
-        // Since we don't have direct access to transaction data, we'll use the transaction_id
-        // and add mock UI properties for display purposes
         return data.map(item => {
-          // Find matching mock data to fill in UI properties that would normally come from a join
-          const mockData = mockFraudCases.find(mock => mock.transaction_id === item.transaction_id) || mockFraudCases[0];
+          const transactionData = item.transactions;
           
           return {
             id: item.id,
@@ -67,11 +72,11 @@ export const useFraudCases = (
             resolution: item.resolution,
             created_at: item.created_at,
             updated_at: item.updated_at,
-            // Add UI properties from mock data
-            customer_name: mockData.customer_name,
-            order_id: mockData.order_id,
-            amount: mockData.amount,
-            payment_method: mockData.payment_method,
+            // Add UI properties from transactions table
+            customer_name: transactionData?.customer_name || "Unknown Customer",
+            order_id: transactionData?.order_id || "N/A",
+            amount: parseFloat(transactionData?.amount || "0"),
+            payment_method: transactionData?.payment_method || "Unknown",
             flags: generateFlagsFromRiskScore(item.risk_score)
           } as FraudCase;
         });

@@ -27,7 +27,7 @@ export const useFraudScore = (transactionId: string) => {
           throw error;
         }
         
-        return data as unknown as FraudScore;
+        return data as FraudScore;
       } catch (error) {
         console.error('Error in useFraudScore:', error);
         return mockFraudScores[transactionId] || null;

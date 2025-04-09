@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,16 +14,22 @@ export interface Transaction {
   device_id?: string;
   location_id?: string;
   amount: number;
+  customer_name: string;
+  order_id: string;
+  payment_method: string;
 }
 
 export interface TransactionResponse {
-  transaction_id: number;
+  transaction_id: string;
   user_id: string;
   device_id: string | null;
   location_id: string | null;
   amount: number;
   timestamp: string;
   risk_score: number;
+  customer_name: string;
+  order_id: string;
+  payment_method: string;
 }
 
 // The base URL for the FastAPI backend
@@ -54,9 +61,27 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
     const result = await response.json();
     
     // Generate a transaction ID string
-    const transactionId = `TX-${result.transaction_id}`;
+    const transactionId = `TX-${Math.floor(Math.random() * 10000)}`;
     
-    // Store fraud score directly (without trying to store in transactions table)
+    // Store the transaction data first
+    const { error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        transaction_id: transactionId,
+        user_id: transaction.user_id,
+        device_id: transaction.device_id,
+        location_id: transaction.location_id,
+        amount: transaction.amount,
+        customer_name: transaction.customer_name,
+        order_id: transaction.order_id,
+        payment_method: transaction.payment_method
+      });
+
+    if (txError) {
+      console.error('Error storing transaction in database:', txError);
+    }
+    
+    // Store fraud score
     const { error: scoreError } = await supabase
       .from('fraud_scores')
       .insert({
@@ -86,7 +111,14 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
       }
     }
 
-    return result;
+    // Return the result with additional transaction data
+    return {
+      ...result,
+      transaction_id: transactionId,
+      customer_name: transaction.customer_name,
+      order_id: transaction.order_id,
+      payment_method: transaction.payment_method
+    };
   } catch (error) {
     console.error('Error in fraud detection service:', error);
     toast.error('Failed to analyze transaction for fraud');
@@ -100,10 +132,19 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
  */
 export const fetchRecentTransactions = async (): Promise<any[]> => {
   try {
-    // Instead of joining with transactions table, we'll just get fraud scores
+    // Join fraud_scores with transactions to get complete data
     const { data, error } = await supabase
       .from('fraud_scores')
-      .select('*')
+      .select(`
+        *,
+        transactions:transaction_id(
+          user_id,
+          amount,
+          customer_name,
+          order_id,
+          payment_method
+        )
+      `)
       .order('created_at', { ascending: false })
       .limit(10);
     
@@ -117,10 +158,12 @@ export const fetchRecentTransactions = async (): Promise<any[]> => {
       risk_score: score.risk_score,
       features: score.features,
       created_at: score.created_at,
-      // Add some mock transaction data since we don't have access to the transactions table
-      amount: 100 + Math.round(score.risk_score * 1000), // Mock amount based on risk score
-      user_id: `user-${Math.floor(Math.random() * 1000)}`, // Random user ID
-      payment_method: score.risk_score > 0.7 ? 'Credit Card' : 'PayPal', // Mock payment method
+      // Get transaction data from the joined transactions table
+      amount: score.transactions?.amount ? parseFloat(score.transactions.amount) : 0,
+      user_id: score.transactions?.user_id || `user-${Math.floor(Math.random() * 1000)}`,
+      customer_name: score.transactions?.customer_name || 'Unknown Customer',
+      order_id: score.transactions?.order_id || 'ORD-XXXXX',
+      payment_method: score.transactions?.payment_method || 'Unknown'
     }));
   } catch (error) {
     console.error('Error fetching transactions:', error);
@@ -141,10 +184,14 @@ export const fetchFraudStatistics = async (): Promise<{
   totalAmount: number;
 }> => {
   try {
-    // Get counts for different risk levels
+    // Join fraud_cases with transactions to get complete data
     const { data: fraudCases, error: casesError } = await supabase
       .from('fraud_cases')
-      .select('status, risk_score');
+      .select(`
+        status, 
+        risk_score,
+        transactions:transaction_id(amount)
+      `);
     
     if (casesError) {
       throw casesError;
@@ -155,9 +202,13 @@ export const fetchFraudStatistics = async (): Promise<{
     const lowRiskCount = fraudCases?.filter(c => c.risk_score <= 0.4).length || 0;
     const clearedCount = fraudCases?.filter(c => c.status === 'marked-safe').length || 0;
     
-    // Calculate a representative total amount based on risk scores
+    // Calculate total amount from transaction data
     const totalAmount = fraudCases?.reduce((sum, kase) => {
-      return sum + (100 + Math.round(kase.risk_score * 1000));
+      // Get the amount from the joined transactions data
+      const amount = kase.transactions?.amount 
+        ? parseFloat(kase.transactions.amount) 
+        : (100 + Math.round(kase.risk_score * 1000));
+      return sum + amount;
     }, 0) || 5000;
 
     return {
