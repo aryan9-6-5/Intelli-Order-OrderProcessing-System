@@ -226,14 +226,12 @@ export const fetchFraudStatistics = async (): Promise<{
     
     // Create a map of amounts
     const amountMap = (transactions || []).reduce((map, tx) => {
-      // Ensure transaction_id is always treated as a string for lookup
       map[String(tx.transaction_id)] = parseFloat(tx.amount);
       return map;
     }, {} as Record<string, number>);
     
     // Calculate total amount
     const totalAmount = fraudCases?.reduce((sum, kase) => {
-      // Ensure transaction_id is treated as a string for lookup
       const txId = String(kase.transaction_id);
       const amount = amountMap[txId] || 
         (kase.risk_score < 0.5 ? 
