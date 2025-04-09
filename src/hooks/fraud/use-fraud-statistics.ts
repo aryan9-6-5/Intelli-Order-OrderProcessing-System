@@ -20,33 +20,45 @@ export const useFraudStatistics = () => {
         // Get counts for different risk levels from fraud_cases
         const { data: fraudCases, error: casesError } = await supabase
           .from('fraud_cases')
-          .select(`
-            id,
-            status,
-            risk_score,
-            transaction_id,
-            transactions:transaction_id(amount)
-          `);
+          .select('status, risk_score, transaction_id');
         
         if (casesError) {
           console.error('Error fetching fraud cases:', casesError);
           throw casesError;
         }
 
-        // Calculate statistics
+        // Calculate count statistics
         const highRiskCount = fraudCases?.filter(c => c.risk_score > 0.7).length || 0;
         const mediumRiskCount = fraudCases?.filter(c => c.risk_score > 0.4 && c.risk_score <= 0.7).length || 0;
         const lowRiskCount = fraudCases?.filter(c => c.risk_score <= 0.4).length || 0;
         const clearedCount = fraudCases?.filter(c => c.status === 'marked-safe').length || 0;
         
-        // Calculate total amount from transaction data
+        // Get all transaction IDs
+        const transactionIds = fraudCases?.map(c => c.transaction_id) || [];
+        
+        // Get transaction amounts
+        const { data: transactions, error: txError } = await supabase
+          .from('transactions')
+          .select('transaction_id, amount')
+          .in('transaction_id', transactionIds);
+        
+        if (txError) {
+          console.error('Error fetching transaction amounts:', txError);
+        }
+        
+        // Create a lookup map for transaction amounts
+        const amountMap = (transactions || []).reduce((map, tx) => {
+          map[tx.transaction_id] = parseFloat(tx.amount);
+          return map;
+        }, {} as Record<string, number>);
+        
+        // Calculate total amount
         const totalAmount = fraudCases?.reduce((sum, kase) => {
-          // Get the amount from the joined transactions data
-          const amount = kase.transactions?.amount 
-            ? parseFloat(kase.transactions.amount) 
-            : (kase.risk_score < 0.5 ? 
-                100 + Math.round(kase.risk_score * 200) : 
-                500 + Math.round(kase.risk_score * 1000));
+          // Get the amount from the transactions data or use a default value
+          const amount = amountMap[kase.transaction_id] || 
+            (kase.risk_score < 0.5 ? 
+              100 + Math.round(kase.risk_score * 200) : 
+              500 + Math.round(kase.risk_score * 1000));
           return sum + amount;
         }, 0) || 5000; // Default fallback amount
 

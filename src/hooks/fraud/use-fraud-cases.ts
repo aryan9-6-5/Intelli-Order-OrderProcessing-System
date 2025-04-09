@@ -12,18 +12,10 @@ export const useFraudCases = (
     queryKey: ['fraud-cases', status, limit],
     queryFn: async () => {
       try {
-        // Start with a query that joins fraud_cases with transactions to get all needed data
+        // Start with a basic query for fraud cases
         let query = supabase
           .from('fraud_cases')
-          .select(`
-            *,
-            transactions:transaction_id(
-              customer_name,
-              order_id,
-              amount,
-              payment_method
-            )
-          `);
+          .select('*');
         
         // Filter cases by status if provided
         if (status) {
@@ -36,31 +28,39 @@ export const useFraudCases = (
         // Limit the number of results
         query = query.limit(limit);
         
-        const { data, error } = await query;
+        const { data: fraudCasesData, error: fraudCasesError } = await query;
         
-        if (error) {
-          console.error('Error fetching fraud cases:', error);
-          
-          // Fallback to mock data if database error occurs
-          let filteredCases = [...mockFraudCases];
-          if (status) {
-            filteredCases = filteredCases.filter(c => c.status === status);
-          }
-          return filteredCases.slice(0, limit);
+        if (fraudCasesError) {
+          console.error('Error fetching fraud cases:', fraudCasesError);
+          return mockFraudCases.slice(0, limit);
         }
         
-        if (!data || data.length === 0) {
+        if (!fraudCasesData || fraudCasesData.length === 0) {
           console.log('No fraud cases found in database, using mock data');
-          let filteredCases = [...mockFraudCases];
-          if (status) {
-            filteredCases = filteredCases.filter(c => c.status === status);
-          }
-          return filteredCases.slice(0, limit);
+          return mockFraudCases.slice(0, limit);
         }
+        
+        // Now fetch transaction details for all the cases
+        const transactionIds = fraudCasesData.map(c => c.transaction_id);
+        
+        const { data: transactionsData, error: transactionsError } = await supabase
+          .from('transactions')
+          .select('*')
+          .in('transaction_id', transactionIds);
+          
+        if (transactionsError) {
+          console.error('Error fetching transactions:', transactionsError);
+        }
+        
+        // Create a lookup map for transactions
+        const transactionMap = (transactionsData || []).reduce((map, transaction) => {
+          map[transaction.transaction_id] = transaction;
+          return map;
+        }, {} as Record<string, any>);
         
         // Map database results to FraudCase objects with all required properties
-        return data.map(item => {
-          const transactionData = item.transactions;
+        return fraudCasesData.map(item => {
+          const transaction = transactionMap[item.transaction_id] || {};
           
           return {
             id: item.id,
@@ -73,20 +73,16 @@ export const useFraudCases = (
             created_at: item.created_at,
             updated_at: item.updated_at,
             // Add UI properties from transactions table
-            customer_name: transactionData?.customer_name || "Unknown Customer",
-            order_id: transactionData?.order_id || "N/A",
-            amount: parseFloat(transactionData?.amount || "0"),
-            payment_method: transactionData?.payment_method || "Unknown",
+            customer_name: transaction.customer_name || "Unknown Customer",
+            order_id: transaction.order_id || "N/A",
+            amount: transaction.amount ? parseFloat(transaction.amount) : 0,
+            payment_method: transaction.payment_method || "Unknown",
             flags: generateFlagsFromRiskScore(item.risk_score)
           } as FraudCase;
         });
       } catch (error) {
         console.error('Error in useFraudCases:', error);
-        let filteredCases = [...mockFraudCases];
-        if (status) {
-          filteredCases = filteredCases.filter(c => c.status === status);
-        }
-        return filteredCases.slice(0, limit);
+        return mockFraudCases.slice(0, limit);
       }
     },
   });

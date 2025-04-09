@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -132,39 +131,55 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
  */
 export const fetchRecentTransactions = async (): Promise<any[]> => {
   try {
-    // Join fraud_scores with transactions to get complete data
-    const { data, error } = await supabase
+    // Get fraud scores first
+    const { data: scores, error: scoresError } = await supabase
       .from('fraud_scores')
-      .select(`
-        *,
-        transactions:transaction_id(
-          user_id,
-          amount,
-          customer_name,
-          order_id,
-          payment_method
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
     
-    if (error) {
-      throw error;
+    if (scoresError) {
+      throw scoresError;
     }
-
-    // Transform the data to include basic transaction info
-    return data.map(score => ({
-      transaction_id: score.transaction_id,
-      risk_score: score.risk_score,
-      features: score.features,
-      created_at: score.created_at,
-      // Get transaction data from the joined transactions table
-      amount: score.transactions?.amount ? parseFloat(score.transactions.amount) : 0,
-      user_id: score.transactions?.user_id || `user-${Math.floor(Math.random() * 1000)}`,
-      customer_name: score.transactions?.customer_name || 'Unknown Customer',
-      order_id: score.transactions?.order_id || 'ORD-XXXXX',
-      payment_method: score.transactions?.payment_method || 'Unknown'
-    }));
+    
+    if (!scores || scores.length === 0) {
+      return [];
+    }
+    
+    // Get transaction IDs
+    const transactionIds = scores.map(score => score.transaction_id);
+    
+    // Fetch transactions data
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .in('transaction_id', transactionIds);
+    
+    if (txError) {
+      throw txError;
+    }
+    
+    // Create a map of transactions by ID for easy lookup
+    const txMap = (transactions || []).reduce((map, tx) => {
+      map[tx.transaction_id] = tx;
+      return map;
+    }, {} as Record<string, any>);
+    
+    // Combine the data
+    return scores.map(score => {
+      const tx = txMap[score.transaction_id] || {};
+      return {
+        transaction_id: score.transaction_id,
+        risk_score: score.risk_score,
+        features: score.features,
+        created_at: score.created_at,
+        amount: tx.amount ? parseFloat(tx.amount) : 0,
+        user_id: tx.user_id || `user-${Math.floor(Math.random() * 1000)}`,
+        customer_name: tx.customer_name || 'Unknown Customer',
+        order_id: tx.order_id || 'ORD-XXXXX',
+        payment_method: tx.payment_method || 'Unknown'
+      };
+    });
   } catch (error) {
     console.error('Error fetching transactions:', error);
     toast.error('Failed to load transaction history');
@@ -184,30 +199,42 @@ export const fetchFraudStatistics = async (): Promise<{
   totalAmount: number;
 }> => {
   try {
-    // Join fraud_cases with transactions to get complete data
+    // Get fraud cases data
     const { data: fraudCases, error: casesError } = await supabase
       .from('fraud_cases')
-      .select(`
-        status, 
-        risk_score,
-        transactions:transaction_id(amount)
-      `);
+      .select('status, risk_score, transaction_id');
     
     if (casesError) {
       throw casesError;
     }
 
+    // Calculate statistics
     const highRiskCount = fraudCases?.filter(c => c.risk_score > 0.7).length || 0;
     const mediumRiskCount = fraudCases?.filter(c => c.risk_score > 0.4 && c.risk_score <= 0.7).length || 0;
     const lowRiskCount = fraudCases?.filter(c => c.risk_score <= 0.4).length || 0;
     const clearedCount = fraudCases?.filter(c => c.status === 'marked-safe').length || 0;
     
-    // Calculate total amount from transaction data
+    // Get transaction IDs
+    const transactionIds = fraudCases?.map(c => c.transaction_id) || [];
+    
+    // Get transaction amounts
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('transaction_id, amount')
+      .in('transaction_id', transactionIds);
+    
+    // Create a map of amounts
+    const amountMap = (transactions || []).reduce((map, tx) => {
+      map[tx.transaction_id] = parseFloat(tx.amount);
+      return map;
+    }, {} as Record<string, number>);
+    
+    // Calculate total amount
     const totalAmount = fraudCases?.reduce((sum, kase) => {
-      // Get the amount from the joined transactions data
-      const amount = kase.transactions?.amount 
-        ? parseFloat(kase.transactions.amount) 
-        : (100 + Math.round(kase.risk_score * 1000));
+      const amount = amountMap[kase.transaction_id] || 
+        (kase.risk_score < 0.5 ? 
+          100 + Math.round(kase.risk_score * 200) : 
+          500 + Math.round(kase.risk_score * 1000));
       return sum + amount;
     }, 0) || 5000;
 
