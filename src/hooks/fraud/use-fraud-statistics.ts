@@ -48,14 +48,17 @@ export const useFraudStatistics = () => {
         
         // Create a lookup map for transaction amounts
         const amountMap = (transactions || []).reduce((map, tx) => {
-          map[tx.transaction_id] = parseFloat(tx.amount);
+          // Ensure transaction_id is always treated as a string for lookup
+          map[tx.transaction_id.toString()] = parseFloat(tx.amount);
           return map;
         }, {} as Record<string, number>);
         
         // Calculate total amount
         const totalAmount = fraudCases?.reduce((sum, kase) => {
+          // Ensure transaction_id is treated as a string for lookup
+          const txId = kase.transaction_id.toString();
           // Get the amount from the transactions data or use a default value
-          const amount = amountMap[kase.transaction_id] || 
+          const amount = amountMap[txId] || 
             (kase.risk_score < 0.5 ? 
               100 + Math.round(kase.risk_score * 200) : 
               500 + Math.round(kase.risk_score * 1000));
