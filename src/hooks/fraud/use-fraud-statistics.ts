@@ -54,7 +54,7 @@ export const useFraudStatistics = () => {
         
         // Calculate total amount
         const totalAmount = fraudCases?.reduce((sum, kase) => {
-          const txId = String(kase.transaction_id);
+          const txId = String(kase.transaction_id); // Convert to string
           // Get the amount from the transactions data or use a default value
           const amount = amountMap[txId] || 
             (kase.risk_score < 0.5 ? 

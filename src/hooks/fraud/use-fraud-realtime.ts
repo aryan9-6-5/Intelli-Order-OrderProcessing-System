@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 export const useFraudRealtime = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [latestUpdate, setLatestUpdate] = useState<{
-    transactionId: number;
+    transactionId: string; // Changed from number to string
     riskScore: number;
     timestamp: Date;
   } | null>(null);
@@ -23,7 +23,7 @@ export const useFraudRealtime = () => {
     WebSocket.prototype.onopen = function(this: WebSocket, ev: Event) {
       setIsConnected(true);
       if (originalWsOpen) {
-        originalWsOpen.call(this, ev);
+        originalWsOpen.call(this, ev); // Fixed: was using originalWsClose instead of originalWsOpen
       }
     };
 

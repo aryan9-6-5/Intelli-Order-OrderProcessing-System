@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { predictFraudWithHGNN, HGNNTransactionData } from "./hgnn/hgnnApiClient";
@@ -249,7 +248,7 @@ export const fetchFraudStatistics = async (): Promise<{
     
     // Calculate total amount
     const totalAmount = fraudCases?.reduce((sum, kase) => {
-      const txId = String(kase.transaction_id);
+      const txId = String(kase.transaction_id); // Convert to string explicitly
       const amount = amountMap[txId] || 
         (kase.risk_score < 0.5 ? 
           100 + Math.round(kase.risk_score * 200) : 
