@@ -1,10 +1,12 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { predictFraudWithHGNN, HGNNTransactionData } from "./hgnn/hgnnApiClient";
 
 /**
- * HGNN Fraud Detection Service
+ * Fraud Detection Service
  * 
- * This service connects to the FastAPI backend that runs the HGNN (Heterogeneous Graph Neural Network)
+ * This service connects to the HGNN (Heterogeneous Graph Neural Network)
  * model for fraud detection. It also handles database operations to store and retrieve fraud data.
  */
 
@@ -29,9 +31,18 @@ export interface TransactionResponse {
   customer_name: string;
   order_id: string;
   payment_method: string;
+  explanation?: {
+    feature_importance?: Record<string, number>;
+    suspicious_connections?: Array<{
+      entity_type: string;
+      entity_id: string;
+      risk_contribution: number;
+    }>;
+    risk_factors?: string[];
+  };
 }
 
-// The base URL for the FastAPI backend
+// The base URL for the API
 const API_BASE_URL = import.meta.env.VITE_FRAUD_API_URL || 'http://localhost:8000';
 
 /**
@@ -43,24 +54,23 @@ const API_BASE_URL = import.meta.env.VITE_FRAUD_API_URL || 'http://localhost:800
  */
 export const submitTransaction = async (transaction: Transaction): Promise<TransactionResponse> => {
   try {
-    // First, send to the AI model API
-    const response = await fetch(`${API_BASE_URL}/transactions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(transaction),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Error submitting transaction');
-    }
-
-    const result = await response.json();
-    
     // Generate a transaction ID string
     const transactionId = `TX-${Math.floor(Math.random() * 10000)}`;
+    
+    // Prepare data for HGNN model
+    const hgnnData: HGNNTransactionData = {
+      user_id: transaction.user_id,
+      order_id: transaction.order_id,
+      payment_method: transaction.payment_method,
+      amount: transaction.amount,
+      device_id: transaction.device_id,
+      location_id: transaction.location_id,
+      customer_name: transaction.customer_name,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Call HGNN model for fraud prediction
+    const hgnnResult = await predictFraudWithHGNN(hgnnData);
     
     // Store the transaction data first
     const { error: txError } = await supabase
@@ -85,8 +95,8 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
       .from('fraud_scores')
       .insert({
         transaction_id: transactionId,
-        risk_score: result.risk_score,
-        features: {}, // Default empty features
+        risk_score: hgnnResult.risk_score,
+        features: hgnnResult.explanation || {},
         model_version: 'hgnn-v1.0',
       });
 
@@ -95,14 +105,15 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
     }
 
     // If risk score is high, create a fraud case
-    if (result.risk_score > 0.5) {
+    if (hgnnResult.risk_score > 0.5) {
       const { error: caseError } = await supabase
         .from('fraud_cases')
         .insert({
           transaction_id: transactionId,
           status: 'pending-review',
-          risk_score: result.risk_score,
-          notes: 'Automatically flagged for review due to high risk score',
+          risk_score: hgnnResult.risk_score,
+          notes: hgnnResult.explanation?.risk_factors?.join(', ') || 
+                 'Automatically flagged for review due to high risk score',
         });
 
       if (caseError) {
@@ -112,11 +123,17 @@ export const submitTransaction = async (transaction: Transaction): Promise<Trans
 
     // Return the result with additional transaction data
     return {
-      ...result,
       transaction_id: transactionId,
+      user_id: transaction.user_id,
+      device_id: transaction.device_id || null,
+      location_id: transaction.location_id || null,
+      amount: transaction.amount,
+      timestamp: new Date().toISOString(),
+      risk_score: hgnnResult.risk_score,
       customer_name: transaction.customer_name,
       order_id: transaction.order_id,
-      payment_method: transaction.payment_method
+      payment_method: transaction.payment_method,
+      explanation: hgnnResult.explanation
     };
   } catch (error) {
     console.error('Error in fraud detection service:', error);
@@ -267,7 +284,7 @@ export class FraudWebSocketClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectTimeout: number = 1000; // Start with 1s, will increase exponentially
-  private callbacks: ((transactionId: number, riskScore: number) => void)[] = [];
+  private callbacks: ((transactionId: string, riskScore: number) => void)[] = [];
 
   /**
    * Connects to the fraud detection WebSocket endpoint
@@ -288,10 +305,10 @@ export class FraudWebSocketClient {
         try {
           // Parse message from "Transaction X: Risk Score = Y.ZZ" format
           const message = event.data;
-          const matches = message.match(/Transaction (\d+): Risk Score = ([\d.]+)/);
+          const matches = message.match(/Transaction (\w+-\d+): Risk Score = ([\d.]+)/);
           
           if (matches && matches.length >= 3) {
-            const transactionId = parseInt(matches[1], 10);
+            const transactionId = matches[1];
             const riskScore = parseFloat(matches[2]);
             
             // Notify all registered callbacks
@@ -343,7 +360,7 @@ export class FraudWebSocketClient {
    * @param callback Function to call when a new score is received
    * @returns Function to unregister the callback
    */
-  onUpdate(callback: (transactionId: number, riskScore: number) => void): () => void {
+  onUpdate(callback: (transactionId: string, riskScore: number) => void): () => void {
     this.callbacks.push(callback);
     
     // Return a function to unregister this callback

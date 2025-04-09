@@ -14,6 +14,7 @@ export const useTransactionAnalysis = () => {
     onSuccess: (data) => {
       // Invalidate and refetch the transaction list query when a new transaction is added
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['fraud-statistics'] });
     }
   });
 

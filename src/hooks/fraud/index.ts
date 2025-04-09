@@ -1,4 +1,3 @@
-
 export * from './types';
 export * from './use-fraud-score';
 export * from './use-fraud-cases';
@@ -7,3 +6,4 @@ export * from './use-fraud-network-graph';
 export * from './use-fraud-realtime';
 export * from './use-transaction-analysis';
 export * from './use-fraud-statistics';
+export * from "./use-hgnn-fraud-detection";
